@@ -1,15 +1,17 @@
 {
   "expo": {
-    "name": "hydration-reminder",
-    "slug": "hydration-reminder",
+    "name": "StayHydrated",
+    "slug": "stayhydrated",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "hydrationreminder",
+    "scheme": "stayhydrated",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "app.kinari.stayhydrated",
+      "supportsTablet": true,
+      "infoPlist": { "UIBackgroundModes": ["fetch"] }
     },
     "android": {
       "adaptiveIcon": {
@@ -38,7 +40,9 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

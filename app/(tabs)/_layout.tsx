@@ -19,15 +19,39 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'ホーム',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="settings"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: '設定',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/profile"
+        options={{
+          href: null, // タブバーに表示しない
+        }}
+      />
+      <Tabs.Screen
+        name="settings/notifications"
+        options={{
+          href: null, // タブバーに表示しない
+        }}
+      />
+      <Tabs.Screen
+        name="settings/app"
+        options={{
+          href: null, // タブバーに表示しない
+        }}
+      />
+      <Tabs.Screen
+        name="settings/data"
+        options={{
+          href: null, // タブバーに表示しない
         }}
       />
     </Tabs>
