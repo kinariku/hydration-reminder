@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import * as Notifications from 'expo-notifications';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MainHeader } from '../../components/main-header';
 import { ProgressRing } from '../../components/ui/ProgressRing';
@@ -78,6 +79,14 @@ export default function HomeScreen() {
       try {
         await cancelSnoozeReminders();
         console.log('Snooze reminders cancelled after water intake');
+
+        const remainingNotifications = await Notifications.getAllScheduledNotificationsAsync();
+        const remainingMorningWakeups = remainingNotifications.filter(
+          (notification) => notification.content.data?.type === 'morning_wakeup'
+        );
+        console.log(
+          `Remaining morning wakeup notifications after water intake: ${remainingMorningWakeups.length}`
+        );
       } catch (error) {
         console.error('Failed to cancel snooze reminders:', error);
       }
