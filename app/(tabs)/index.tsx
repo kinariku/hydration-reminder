@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
-import * as Notifications from 'expo-notifications';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MainHeader } from '../../components/main-header';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
 import { getLocalDateString } from '../../lib/date';
-import { cancelSnoozeReminders, requestNotificationPermission } from '../../lib/notifications';
+import { requestNotificationPermission, scheduleButtonTriggeredReminders, scheduleNextReminder } from '../../lib/notifications';
 import { formatVolume } from '../../lib/unitConverter';
 import { useHydrationStore } from '../../stores/hydrationStore';
 
@@ -35,16 +34,38 @@ export default function HomeScreen() {
     return { totalIntake, recordCount, avgIntake };
   }, [todayIntake]); // todayIntakeが変更された時のみ再計算
 
-  // 通知権限の確認（初回のみ）
+  // 通知権限の確認と初期通知のスケジュール
   useEffect(() => {
-    if (!notificationPermission) {
-      requestNotificationPermission().then((permission) => {
+    const initializeNotifications = async () => {
+      if (!notificationPermission) {
+        const permission = await requestNotificationPermission();
         if (permission) {
           setNotificationPermission(true);
         }
-      });
-    }
-  }, []);
+      }
+      
+      // 通知権限がある場合、初期通知をスケジュール
+      if (notificationPermission && userProfile && dailyGoal) {
+        try {
+          const nextReminder = await scheduleNextReminder({
+            wakeTime: userProfile.wakeTime,
+            sleepTime: userProfile.sleepTime,
+            targetMl: dailyGoal.targetMl,
+            consumedMl: todayTotal,
+            userSnoozeMin: settings.snoozeMinutes,
+          });
+          
+          if (nextReminder) {
+            console.log('Initial reminder scheduled:', nextReminder.nextAt?.toISOString());
+          }
+        } catch (error) {
+          console.error('Failed to schedule initial reminder:', error);
+        }
+      }
+    };
+    
+    initializeNotifications();
+  }, [notificationPermission, userProfile, dailyGoal, todayTotal, settings.snoozeMinutes]);
 
   // 今日の摂取ログの読み込み（初回のみ）
   useEffect(() => {
@@ -74,26 +95,21 @@ export default function HomeScreen() {
       console.error('Failed to save intake log:', error);
     }
 
-    // 水を飲んだ時にスヌーズ通知をキャンセル
-    if (notificationPermission) {
+    // 次の通知とスヌーズ・朝のリマインダーをまとめて再登録
+    if (notificationPermission && userProfile && dailyGoal) {
       try {
-        await cancelSnoozeReminders();
-        console.log('Snooze reminders cancelled after water intake');
-
-        const remainingNotifications = await Notifications.getAllScheduledNotificationsAsync();
-        const remainingMorningWakeups = remainingNotifications.filter(
-          (notification) => notification.content.data?.type === 'morning_wakeup'
-        );
-        console.log(
-          `Remaining morning wakeup notifications after water intake: ${remainingMorningWakeups.length}`
-        );
+        await scheduleButtonTriggeredReminders({
+          wakeTime: userProfile.wakeTime,
+          sleepTime: userProfile.sleepTime,
+          targetMl: dailyGoal.targetMl,
+          consumedMl: todayTotal + amount,
+          userSnoozeMin: settings.snoozeMinutes,
+        });
+        console.log('Notifications rescheduled after water intake');
       } catch (error) {
-        console.error('Failed to cancel snooze reminders:', error);
+        console.error('Failed to reschedule notifications:', error);
       }
     }
-
-    // 通知の再スケジュールは削除（ボタンを押した時のみ通知を登録する仕様に変更）
-    // 必要に応じて、特定の条件でのみ通知をスケジュールする
   };
 
   if (!userProfile || !dailyGoal) {

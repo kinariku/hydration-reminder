@@ -7,7 +7,6 @@ import 'react-native-reanimated';
 import { FullScreenLoader } from '@/components/FullScreenLoader';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { initDatabase } from '../lib/database';
-import { useHydrationStore } from '../stores/hydrationStore';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -15,9 +14,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { isOnboarded, userProfile, setUserProfile, setOnboarded } = useHydrationStore();
   const [isLoading, setIsLoading] = useState(true);
-  const [hasOnboarded, setHasOnboarded] = useState(false);
 
   useEffect(() => {
     // Only initialize database here, navigation is handled by index.tsx
@@ -47,7 +44,6 @@ export default function RootLayout() {
     );
   }
 
-  console.log('Render state:', { isLoading, hasOnboarded });
   console.log('RootLayout: Rendering');
   
   return (

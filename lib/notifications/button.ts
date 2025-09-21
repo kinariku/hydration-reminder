@@ -49,10 +49,11 @@ export const scheduleButtonTriggeredReminders = async (
       });
 
       if (plan && plan.nextAt) {
+        const snoozeInterval = Math.max(5, userSnoozeMin ?? 10);
         await scheduleSnoozeReminders({
           baseTime: plan.nextAt,
           suggestMl: plan.suggestMl,
-          intervalMinutes: 10,
+          intervalMinutes: snoozeInterval,
           maxSnoozes: 5,
         });
         console.log("Today's next reminder + 5 snoozes scheduled");
