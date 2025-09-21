@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -10,7 +9,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonHeader } from '../../../components/common-header';
 import { saveUserProfile } from '../../../lib/database';
 import { scheduleReminders } from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
@@ -98,17 +97,10 @@ export default function NotificationSettingsScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/settings')} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
-          <Text style={styles.backText}>戻る</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>通知設定</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <ScrollView style={styles.content}>
+    <View style={styles.container}>
+      <CommonHeader title="通知設定" />
+      
+      <ScrollView contentContainerStyle={styles.content}>
         {/* 基本設定 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>基本設定</Text>
@@ -256,6 +248,34 @@ export default function NotificationSettingsScreen() {
               </Text>
             </View>
 
+            {/* 学習データの詳細 */}
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>学習データ統計</Text>
+              <View style={styles.statsContainer}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>成功した時間帯</Text>
+                  <Text style={styles.statValue}>
+                    {personalizedSettings.learningData.successfulReminders.length}個
+                  </Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>スキップされた時間帯</Text>
+                  <Text style={styles.statValue}>
+                    {personalizedSettings.learningData.skippedNotifications.length}個
+                  </Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>最も活動的な時間</Text>
+                  <Text style={styles.statValue}>
+                    {personalizedSettings.learningData.mostActiveHours.length > 0 
+                      ? personalizedSettings.learningData.mostActiveHours.join(', ')
+                      : 'データなし'
+                    }
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>静音時間</Text>
               <Text style={styles.timeList}>
@@ -280,7 +300,7 @@ export default function NotificationSettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -289,40 +309,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  backIcon: {
-    fontSize: 20,
-    color: '#007AFF',
-    marginRight: 4,
-  },
-  backText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1C1C1E',
-  },
   placeholder: {
     width: 40,
   },
   content: {
-    flex: 1,
     padding: 16,
+    paddingBottom: 32,
   },
   section: {
     marginBottom: 24,
@@ -396,6 +388,26 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     marginTop: 8,
     lineHeight: 16,
+  },
+  statsContainer: {
+    marginTop: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1C1C1E',
   },
   timeList: {
     fontSize: 14,

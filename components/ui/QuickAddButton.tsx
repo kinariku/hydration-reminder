@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { BUTTON_SIZES } from '../../constants/buttonSizes';
 
 interface QuickAddButtonProps {
   amount: number;
@@ -34,17 +35,18 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: BUTTON_SIZES.medium.paddingHorizontal,
+    paddingVertical: BUTTON_SIZES.medium.paddingVertical,
     borderRadius: 25,
     margin: 4,
+    minWidth: BUTTON_SIZES.medium.minWidth,
   },
   disabled: {
     backgroundColor: '#E5E5EA',
   },
   text: {
     color: 'white',
-    fontSize: 16,
+    fontSize: BUTTON_SIZES.medium.fontSize,
     fontWeight: '600',
   },
   disabledText: {

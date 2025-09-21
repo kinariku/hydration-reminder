@@ -23,6 +23,18 @@ export default function HomeScreen() {
   const progress = getTodayProgress();
   const remaining = Math.max(0, (dailyGoal?.targetMl || 0) - todayTotal);
 
+  // データ統計の計算
+  const getDataStats = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayLogs = getIntakeLogs(today);
+    const totalIntake = todayLogs.reduce((sum, log) => sum + log.amountMl, 0);
+    const recordCount = todayLogs.length;
+    const avgIntake = recordCount > 0 ? Math.round(totalIntake / recordCount) : 0;
+    return { totalIntake, recordCount, avgIntake };
+  };
+
+  const stats = getDataStats();
+
   useEffect(() => {
     // Request notification permission on first load
     if (!notificationPermission) {
@@ -74,8 +86,14 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
+      >
         <Text style={styles.title}>💧 今日の水分摂取</Text>
         
         <View style={styles.progressContainer}>
@@ -126,8 +144,29 @@ export default function HomeScreen() {
             <Text style={styles.statLabel}>達成率</Text>
           </View>
         </View>
+
+        {/* データ統計セクション */}
+        <View style={styles.dataStatsSection}>
+          <Text style={styles.sectionTitle}>📊 今日の記録</Text>
+          <View style={styles.dataStatsCard}>
+            <View style={styles.dataStatsRow}>
+              <View style={styles.dataStatItem}>
+                <Text style={styles.dataStatValue}>{stats.recordCount}</Text>
+                <Text style={styles.dataStatLabel}>記録数</Text>
+              </View>
+              <View style={styles.dataStatItem}>
+                <Text style={styles.dataStatValue}>{stats.totalIntake}ml</Text>
+                <Text style={styles.dataStatLabel}>総摂取量</Text>
+              </View>
+              <View style={styles.dataStatItem}>
+                <Text style={styles.dataStatValue}>{stats.avgIntake}ml</Text>
+                <Text style={styles.dataStatLabel}>平均摂取量</Text>
+              </View>
+            </View>
+          </View>
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -136,8 +175,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
-    padding: 16,
+    padding: 20,
+    paddingBottom: 40,
     alignItems: 'center',
   },
   centerContent: {
@@ -173,7 +216,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   remainingContainer: {
-    marginBottom: 30,
+    marginBottom: 32,
   },
   remainingText: {
     fontSize: 18,
@@ -182,7 +225,7 @@ const styles = StyleSheet.create({
   },
   quickAddContainer: {
     width: '100%',
-    marginBottom: 30,
+    marginBottom: 32,
   },
   quickAddTitle: {
     fontSize: 20,
@@ -213,5 +256,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8E93',
     marginTop: 4,
+  },
+  dataStatsSection: {
+    width: '100%',
+    marginTop: 32,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  dataStatsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dataStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  dataStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  dataStatValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  dataStatLabel: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

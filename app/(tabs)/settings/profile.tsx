@@ -9,7 +9,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonHeader } from '../../../components/common-header';
 import { saveUserProfile } from '../../../lib/database';
 import { scheduleReminders } from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
@@ -88,17 +88,10 @@ export default function ProfileSettingsScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/settings')} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
-          <Text style={styles.backText}>戻る</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>プロフィール設定</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <ScrollView style={styles.content}>
+    <View style={styles.container}>
+      <CommonHeader title="プロフィール設定" />
+      
+      <ScrollView contentContainerStyle={styles.content}>
         {/* 体重入力 */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>体重 (kg) *</Text>
@@ -209,7 +202,7 @@ export default function ProfileSettingsScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -218,40 +211,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  backIcon: {
-    fontSize: 20,
-    color: '#007AFF',
-    marginRight: 4,
-  },
-  backText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1C1C1E',
-  },
-  placeholder: {
-    width: 40,
-  },
   content: {
-    flex: 1,
     padding: 16,
+    paddingBottom: 32,
   },
   inputGroup: {
     marginBottom: 20,

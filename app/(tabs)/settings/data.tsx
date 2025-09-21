@@ -1,5 +1,4 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useState } from 'react';
 import {
@@ -10,7 +9,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonHeader } from '../../../components/common-header';
+import { BUTTON_SIZES } from '../../../constants/buttonSizes';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
 export default function DataSettingsScreen() {
@@ -96,17 +96,10 @@ export default function DataSettingsScreen() {
   const stats = getDataStats();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/settings')} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
-          <Text style={styles.backText}>戻る</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>データ管理</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <ScrollView style={styles.content}>
+    <View style={styles.container}>
+      <CommonHeader title="データ管理" />
+      
+      <ScrollView contentContainerStyle={styles.content}>
         {/* データ統計 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>データ統計</Text>
@@ -202,7 +195,7 @@ export default function DataSettingsScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -211,43 +204,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  backIcon: {
-    fontSize: 20,
-    color: '#007AFF',
-    marginRight: 4,
-  },
-  backText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1C1C1E',
-  },
-  placeholder: {
-    width: 40,
-  },
   content: {
-    flex: 1,
     padding: 16,
+    paddingBottom: 32,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
@@ -280,8 +242,9 @@ const styles = StyleSheet.create({
   settingItem: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E5E5EA',
     flexDirection: 'row',
@@ -290,7 +253,8 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 20,
+    paddingVertical: 8,
   },
   settingLabel: {
     fontSize: 16,
@@ -304,11 +268,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: BUTTON_SIZES.small.paddingHorizontal,
+    paddingVertical: BUTTON_SIZES.small.paddingVertical,
     borderRadius: 8,
     alignItems: 'center',
-    minWidth: 80,
+    justifyContent: 'center',
+    minWidth: BUTTON_SIZES.small.minWidth,
+    marginVertical: 8,
+    marginLeft: 8,
   },
   exportButton: {
     backgroundColor: '#007AFF',
@@ -321,7 +288,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: BUTTON_SIZES.small.fontSize,
     fontWeight: '600',
   },
   warningCard: {

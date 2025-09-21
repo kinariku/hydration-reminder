@@ -8,7 +8,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHydrationStore } from '../../stores/hydrationStore';
 
 export default function SettingsScreen() {
@@ -47,24 +46,9 @@ export default function SettingsScreen() {
     }
   };
 
-  const getDataStats = () => {
-    const totalIntake = settings.todayIntake?.reduce((sum, log) => sum + log.amountMl, 0) || 0;
-    const recordCount = settings.todayIntake?.length || 0;
-    const avgIntake = recordCount > 0 ? Math.round(totalIntake / recordCount) : 0;
-    
-    return { totalIntake, recordCount, avgIntake };
-  };
-
-  const stats = getDataStats();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>設定</Text>
-        <Text style={styles.subtitle}>アプリの設定と情報を確認・変更できます</Text>
-      </View>
-
-      <ScrollView style={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* プロフィール情報 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -78,15 +62,15 @@ export default function SettingsScreen() {
           </View>
           
           <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>体重</Text>
               <Text style={styles.infoValue}>{userProfile?.weightKg || '未設定'}kg</Text>
             </View>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>身長</Text>
               <Text style={styles.infoValue}>{userProfile?.heightCm || '未設定'}cm</Text>
             </View>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>性別</Text>
               <Text style={styles.infoValue}>
                 {userProfile?.sex === 'male' ? '男性' : 
@@ -105,7 +89,9 @@ export default function SettingsScreen() {
 
         {/* 目標摂取水分量 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💧 目標摂取水分量</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>💧 目標摂取水分量</Text>
+          </View>
           
           <View style={styles.goalCard}>
             <View style={styles.goalHeader}>
@@ -123,10 +109,18 @@ export default function SettingsScreen() {
 
         {/* 通知設定 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔔 通知設定</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🔔 通知設定</Text>
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={() => handleEditPress('notifications')}
+            >
+              <Text style={styles.editButtonText}>詳細設定</Text>
+            </TouchableOpacity>
+          </View>
           
           <View style={styles.infoCard}>
-            <View style={styles.switchRow}>
+            <View style={styles.switchRowWithBorder}>
               <View style={styles.switchContent}>
                 <Text style={styles.switchLabel}>通知を有効にする</Text>
                 <Text style={styles.switchDescription}>
@@ -139,7 +133,7 @@ export default function SettingsScreen() {
               />
             </View>
 
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>起床・就寝時刻</Text>
               <Text style={styles.infoValue}>
                 {userProfile?.wakeTime || '未設定'} - {userProfile?.sleepTime || '未設定'}
@@ -153,7 +147,7 @@ export default function SettingsScreen() {
 
             {personalizedSettings && (
               <>
-                <View style={styles.infoRow}>
+                <View style={styles.infoRowWithBorder}>
                   <Text style={styles.infoLabel}>通知頻度</Text>
                   <Text style={styles.infoValue}>
                     {personalizedSettings.notificationPattern.frequency === 'high' ? '高' :
@@ -174,26 +168,27 @@ export default function SettingsScreen() {
                 </View>
               </>
             )}
-
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={() => handleEditPress('notifications')}
-            >
-              <Text style={styles.editButtonText}>詳細設定</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
         {/* アプリ設定 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚙️ アプリ設定</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>⚙️ アプリ設定</Text>
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={() => handleEditPress('app')}
+            >
+              <Text style={styles.editButtonText}>詳細設定</Text>
+            </TouchableOpacity>
+          </View>
           
           <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>単位</Text>
               <Text style={styles.infoValue}>{settings.units === 'ml' ? 'ミリリットル (ml)' : 'オンス (oz)'}</Text>
             </View>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>クイックボタン</Text>
               <Text style={styles.infoValue}>{settings.presetMl.join(', ')}ml</Text>
             </View>
@@ -210,42 +205,16 @@ export default function SettingsScreen() {
                 onValueChange={handleAnalyticsToggle}
               />
             </View>
-
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={() => handleEditPress('app')}
-            >
-              <Text style={styles.editButtonText}>詳細設定</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* データ統計 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 データ統計</Text>
-          
-          <View style={styles.statsCard}>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.recordCount}</Text>
-                <Text style={styles.statLabel}>記録数</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.totalIntake}ml</Text>
-                <Text style={styles.statLabel}>総摂取量</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.avgIntake}ml</Text>
-                <Text style={styles.statLabel}>平均摂取量</Text>
-              </View>
-            </View>
-          </View>
-        </View>
 
         {/* データ管理 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💾 データ管理</Text>
-          
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>💾 データ管理</Text>
+          </View>
+
           <View style={styles.infoCard}>
             <TouchableOpacity 
               style={styles.actionButton}
@@ -257,50 +226,40 @@ export default function SettingsScreen() {
         </View>
 
         {/* アプリ情報 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ℹ️ アプリ情報</Text>
-          
+        <View style={styles.appInfoSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>ℹ️ アプリ情報</Text>
+          </View>
+
           <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>アプリ名</Text>
               <Text style={styles.infoValue}>StayHydrated</Text>
             </View>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>バージョン</Text>
               <Text style={styles.infoValue}>1.0.0</Text>
             </View>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>開発者</Text>
               <Text style={styles.infoValue}>StayHydrated Team</Text>
             </View>
-            <View style={styles.infoRow}>
+            <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>プラットフォーム</Text>
               <Text style={styles.infoValue}>React Native + Expo</Text>
             </View>
+            {personalizedSettings && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>最終更新</Text>
+                <Text style={styles.infoValue}>
+                  {new Date(personalizedSettings.learningData.lastUpdated).toLocaleDateString('ja-JP')}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
-        {/* パーソナライズ設定の状態 */}
-        {personalizedSettings && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎯 パーソナライズ設定</Text>
-            
-            <View style={styles.statusCard}>
-              <Text style={styles.statusTitle}>学習データ</Text>
-              <Text style={styles.statusText}>
-                最終更新: {new Date(personalizedSettings.learningData.lastUpdated).toLocaleDateString('ja-JP')}
-              </Text>
-              <Text style={styles.statusText}>
-                成功した時間帯: {personalizedSettings.learningData.successfulReminders.length}個
-              </Text>
-              <Text style={styles.statusText}>
-                スキップされた時間帯: {personalizedSettings.learningData.skippedNotifications.length}個
-              </Text>
-            </View>
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -327,29 +286,35 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   content: {
-    flex: 1,
     padding: 16,
+    paddingBottom: 32,
+    flexGrow: 1,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  appInfoSection: {
+    marginBottom: 0,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
+    paddingVertical: 4,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 12,
+    marginBottom: 0,
   },
   editButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
+    marginLeft: 8,
   },
   editButtonText: {
     color: '#FFFFFF',
@@ -359,11 +324,18 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
   infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  infoRowWithBorder: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -387,6 +359,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
+  },
+  switchRowWithBorder: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
@@ -404,6 +382,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8E93',
     lineHeight: 18,
+    marginTop: 2,
   },
   statsCard: {
     backgroundColor: '#FFFFFF',
@@ -432,8 +411,10 @@ const styles = StyleSheet.create({
   actionButton: {
     backgroundColor: '#34C759',
     borderRadius: 8,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     alignItems: 'center',
+    marginVertical: 8,
   },
   actionButtonText: {
     color: '#FFFFFF',
@@ -443,7 +424,8 @@ const styles = StyleSheet.create({
   statusCard: {
     backgroundColor: '#F0F8FF',
     borderRadius: 12,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderWidth: 1,
     borderColor: '#007AFF',
   },
@@ -464,6 +446,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#007AFF',
+    marginTop: 4,
   },
   goalHeader: {
     flexDirection: 'row',
