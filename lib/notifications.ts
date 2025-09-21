@@ -1,6 +1,7 @@
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
+import { Platform } from 'react-native';
 
 const BACKGROUND_FETCH_TASK = 'background-fetch-task';
 const NOTIFICATION_CHANNEL_ID = 'hydration_reminders';
@@ -39,7 +40,23 @@ export const scheduleReminders = async (
   reminderCount: number = 8
 ) => {
   try {
-    // Check if notifications are supported (remove isAvailableAsync as it doesn't exist)
+    if (Platform.OS === 'web') {
+      console.warn('Notifications are not supported on web platforms');
+      return;
+    }
+
+    const { status } = await Notifications.getPermissionsAsync();
+    let hasPermission = status === 'granted';
+
+    if (!hasPermission) {
+      hasPermission = await requestNotificationPermission();
+    }
+
+    if (!hasPermission) {
+      console.warn('Notification permissions are not granted');
+      return;
+    }
+
     console.log('Scheduling notifications...');
 
     // Cancel existing notifications
@@ -89,6 +106,15 @@ export const scheduleReminders = async (
     console.log(`Scheduled ${maxNotifications} notifications`);
   } catch (error) {
     console.warn('Failed to schedule notifications:', error);
+  }
+};
+
+export const cancelScheduledReminders = async () => {
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch (error) {
+    console.warn('Failed to cancel scheduled notifications:', error);
+    throw error;
   }
 };
 
