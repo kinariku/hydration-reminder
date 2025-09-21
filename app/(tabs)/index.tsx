@@ -5,7 +5,7 @@ import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
 import { getLocalDateString } from '../../lib/date';
-import { requestNotificationPermission, scheduleNextReminder } from '../../lib/notifications';
+import { cancelSnoozeReminders, requestNotificationPermission, scheduleButtonTriggeredReminders } from '../../lib/notifications';
 import { useHydrationStore } from '../../stores/hydrationStore';
 
 export default function HomeScreen() {
@@ -48,19 +48,22 @@ export default function HomeScreen() {
 
     loadTodayIntake();
 
-    // Schedule next reminder if permission is granted and user profile exists
+    // Schedule initial reminders if permission is granted and user profile exists
     const scheduleNotifications = async () => {
       if (notificationPermission && userProfile && dailyGoal) {
         try {
-          await scheduleNextReminder({
+          // 初期スケジュールを設定（今日の次通知+スヌーズ + 明日から7日分の起床通知）
+          await scheduleButtonTriggeredReminders({
             wakeTime: userProfile.wakeTime,
             sleepTime: userProfile.sleepTime,
             targetMl: dailyGoal.targetMl,
             consumedMl: getTodayTotal(),
+            reminderCount: 8,
           });
-          console.log('Next reminder scheduled on app start');
+          
+          console.log('Initial reminders scheduled on app start');
         } catch (error) {
-          console.warn('Failed to schedule next reminder:', error);
+          console.warn('Failed to schedule initial reminders:', error);
         }
       }
     };
@@ -92,19 +95,32 @@ export default function HomeScreen() {
       console.error('Failed to save intake log:', error);
     }
 
-    // 水を飲んだ後に次の通知をスケジュール
+    // 水を飲んだ時にスヌーズ通知をキャンセル
+    if (notificationPermission) {
+      try {
+        await cancelSnoozeReminders();
+        console.log('Snooze reminders cancelled after water intake');
+      } catch (error) {
+        console.error('Failed to cancel snooze reminders:', error);
+      }
+    }
+
+    // 水を飲んだ後に通知スケジュールをリセット・再登録
     if (notificationPermission && userProfile && dailyGoal) {
       const updatedTotal = getTodayTotal();
       try {
-        await scheduleNextReminder({
+        // ボタン押下時のスケジュールを実行（リセット + 再登録）
+        await scheduleButtonTriggeredReminders({
           wakeTime: userProfile.wakeTime,
           sleepTime: userProfile.sleepTime,
           targetMl: dailyGoal.targetMl,
           consumedMl: updatedTotal,
+          reminderCount: 8,
         });
-        console.log('Next reminder scheduled after water intake');
+        
+        console.log('Reminders reset and rescheduled after water intake');
       } catch (error) {
-        console.error('Failed to schedule next reminder:', error);
+        console.error('Failed to reset and reschedule reminders:', error);
       }
     }
   };

@@ -8,6 +8,22 @@ import { planNextReminder, ReminderPlanResult } from './reminderPlanner';
 const BACKGROUND_FETCH_TASK = 'background-fetch-task';
 const NOTIFICATION_CHANNEL_ID = 'hydration_reminders';
 
+// スヌーズメッセージ（段階的に切迫感を増す）
+const SNOOZE_MESSAGES = [
+  "まだ飲んでいませんね。今のうちに一杯どう？",
+  "水分補給を忘れるとペースが遅れます。少しでも飲んでみましょう",
+  "今日は残りの目標が気になりますよ。ここで200ml補給しませんか？",
+  "そろそろ本気で飲まないと遅れます。軽くでも口を潤して！",
+  "これが最後のリマインドです。今飲んでおくと今日が楽になります"
+];
+
+// スヌーズ設定
+const SNOOZE_CONFIG = {
+  maxSnoozes: 5,
+  intervalMinutes: 10, // デフォルト10分間隔
+  maxIntervalMinutes: 30, // 最大30分間隔
+};
+
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -42,6 +58,18 @@ export interface ScheduleNextReminderOptions {
   consumedMl: number;
   reminderCount?: number;
   userSnoozeMin?: number;
+}
+
+export interface SnoozeOptions {
+  baseTime: Date;
+  suggestMl: number;
+  intervalMinutes?: number;
+  maxSnoozes?: number;
+}
+
+export interface SnoozeResult {
+  scheduledCount: number;
+  nextSnoozeAt: Date | null;
 }
 
 // 新しい仕様: 水を飲んだタイミングで次の通知をスケジュール
@@ -125,6 +153,216 @@ export const scheduleNextReminder = async (
   } catch (error) {
     console.warn('Failed to schedule next reminder:', error);
     return null;
+  }
+};
+
+// スヌーズ機能: 最初の通知 + 最大5回のスヌーズ通知をスケジュール
+export const scheduleSnoozeReminders = async (
+  options: SnoozeOptions
+): Promise<SnoozeResult> => {
+  try {
+    if (Platform.OS === 'web') {
+      console.warn('Notifications are not supported on web platforms');
+      return { scheduledCount: 0, nextSnoozeAt: null };
+    }
+
+    const { status } = await Notifications.getPermissionsAsync();
+    let hasPermission = status === 'granted';
+
+    if (!hasPermission) {
+      hasPermission = await requestNotificationPermission();
+    }
+
+    if (!hasPermission) {
+      console.warn('Notification permissions are not granted');
+      return { scheduledCount: 0, nextSnoozeAt: null };
+    }
+
+    console.log('Scheduling snooze reminders...');
+
+    // 既存の通知をキャンセル
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const {
+      baseTime,
+      suggestMl,
+      intervalMinutes = SNOOZE_CONFIG.intervalMinutes,
+      maxSnoozes = SNOOZE_CONFIG.maxSnoozes
+    } = options;
+
+    const actualInterval = Math.min(intervalMinutes, SNOOZE_CONFIG.maxIntervalMinutes);
+    const totalNotifications = Math.min(maxSnoozes + 1, SNOOZE_CONFIG.maxSnoozes + 1); // +1 for initial notification
+
+    let scheduledCount = 0;
+    let nextSnoozeAt: Date | null = null;
+
+    // 最初の通知
+    const initialMessage = `水分補給の時間です！${suggestMl}ml どうですか？`;
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '💧 水分補給リマインダー',
+        body: initialMessage,
+        sound: true,
+        data: {
+          type: 'initial',
+          suggestMl,
+          snoozeCount: 0
+        },
+      },
+      trigger: {
+        type: SchedulableTriggerInputTypes.DATE,
+        date: baseTime,
+      },
+    });
+    scheduledCount++;
+
+    // スヌーズ通知
+    for (let i = 0; i < maxSnoozes; i++) {
+      const snoozeTime = new Date(baseTime.getTime() + (i + 1) * actualInterval * 60000);
+      const message = SNOOZE_MESSAGES[i] || SNOOZE_MESSAGES[SNOOZE_MESSAGES.length - 1];
+      
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '💧 水分補給リマインダー',
+          body: message,
+          sound: true,
+          data: {
+            type: 'snooze',
+            suggestMl,
+            snoozeCount: i + 1
+          },
+        },
+        trigger: {
+          type: SchedulableTriggerInputTypes.DATE,
+          date: snoozeTime,
+        },
+      });
+      scheduledCount++;
+      
+      if (i === 0) {
+        nextSnoozeAt = snoozeTime;
+      }
+    }
+
+    console.log(`Scheduled ${scheduledCount} snooze reminders (initial + ${maxSnoozes} snoozes)`);
+    console.log(`Next snooze at: ${nextSnoozeAt?.toLocaleString()}`);
+
+    return { scheduledCount, nextSnoozeAt };
+  } catch (error) {
+    console.warn('Failed to schedule snooze reminders:', error);
+    return { scheduledCount: 0, nextSnoozeAt: null };
+  }
+};
+
+// スヌーズ通知をキャンセル（水を飲んだ時に呼び出し）
+export const cancelSnoozeReminders = async (): Promise<void> => {
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log('All snooze reminders cancelled');
+  } catch (error) {
+    console.warn('Failed to cancel snooze reminders:', error);
+  }
+};
+
+// ボタン押下時の通知スケジュール: 今日の次通知+スヌーズ + 明日から7日分の起床通知
+export const scheduleButtonTriggeredReminders = async (
+  options: ScheduleNextReminderOptions
+): Promise<void> => {
+  try {
+    if (Platform.OS === 'web') {
+      console.warn('Notifications are not supported on web platforms');
+      return;
+    }
+
+    const { status } = await Notifications.getPermissionsAsync();
+    let hasPermission = status === 'granted';
+
+    if (!hasPermission) {
+      hasPermission = await requestNotificationPermission();
+    }
+
+    if (!hasPermission) {
+      console.warn('Notification permissions are not granted');
+      return;
+    }
+
+    console.log('Scheduling button-triggered reminders...');
+
+    const {
+      wakeTime,
+      sleepTime,
+      targetMl,
+      consumedMl,
+      reminderCount = 8
+    } = options;
+
+    // 既存の通知をキャンセル
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // 今日の起床時間を計算
+    const todayWake = parseTimeToDate(wakeTime, today);
+    const todaySleep = parseTimeToDate(sleepTime, today);
+    if (todaySleep <= todayWake) {
+      todaySleep.setDate(todaySleep.getDate() + 1);
+    }
+
+    // 1. 今日の次の通知 + スヌーズ5つをスケジュール
+    if (now < todaySleep) {
+      const plan = await scheduleNextReminder({
+        wakeTime,
+        sleepTime,
+        targetMl,
+        consumedMl,
+        reminderCount
+      });
+
+      if (plan && plan.nextAt) {
+        await scheduleSnoozeReminders({
+          baseTime: plan.nextAt,
+          suggestMl: plan.suggestMl,
+          intervalMinutes: 10,
+          maxSnoozes: 5,
+        });
+        console.log('Today\'s next reminder + 5 snoozes scheduled');
+      }
+    }
+
+    // 2. 明日から7日分の起床時刻の目覚め通知をスケジュール
+    for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {
+      const targetDate = new Date(today);
+      targetDate.setDate(targetDate.getDate() + dayOffset);
+      
+      const dayWake = parseTimeToDate(wakeTime, targetDate);
+      
+      // 起床時刻の目覚め通知をスケジュール
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '🌅 おはようございます！',
+          body: `今日も水分補給を始めましょう！${targetMl}mlの目標に向けて頑張りましょう`,
+          sound: true,
+          data: {
+            type: 'morning_wakeup',
+            dayOffset,
+            targetMl
+          },
+        },
+        trigger: {
+          type: SchedulableTriggerInputTypes.DATE,
+          date: dayWake,
+        },
+      });
+
+      console.log(`Day ${dayOffset} morning wakeup scheduled for ${dayWake.toLocaleDateString()} at ${dayWake.toLocaleTimeString()}`);
+    }
+
+    console.log('Button-triggered reminders scheduled successfully');
+  } catch (error) {
+    console.warn('Failed to schedule button-triggered reminders:', error);
   }
 };
 
