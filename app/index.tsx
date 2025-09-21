@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { FullScreenLoader } from '@/components/FullScreenLoader';
 
 export default function IndexScreen() {
   const [isNavigating, setIsNavigating] = useState(false);
@@ -43,12 +43,5 @@ export default function IndexScreen() {
     return () => clearTimeout(timeoutId);
   }, [isNavigating]);
 
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7' }}>
-      <ActivityIndicator size="large" color="#007AFF" />
-      <Text style={{ marginTop: 16, fontSize: 16, color: '#8E8E93' }}>
-        読み込み中...
-      </Text>
-    </View>
-  );
+  return <FullScreenLoader />;
 }
