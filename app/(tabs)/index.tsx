@@ -5,7 +5,11 @@ import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
 import { getLocalDateString } from '../../lib/date';
-import { requestNotificationPermission, scheduleButtonTriggeredReminders, scheduleNextReminder } from '../../lib/notifications';
+import {
+  cancelScheduledReminders,
+  requestNotificationPermission,
+  scheduleButtonTriggeredReminders,
+} from '../../lib/notifications';
 import { formatVolume } from '../../lib/unitConverter';
 import { useHydrationStore } from '../../stores/hydrationStore';
 
@@ -34,38 +38,56 @@ export default function HomeScreen() {
     return { totalIntake, recordCount, avgIntake };
   }, [todayIntake]); // todayIntakeが変更された時のみ再計算
 
-  // 通知権限の確認と初期通知のスケジュール
+  // 初回マウント時に既存の通知をリセット
   useEffect(() => {
-    const initializeNotifications = async () => {
-      if (!notificationPermission) {
-        const permission = await requestNotificationPermission();
-        if (permission) {
-          setNotificationPermission(true);
-        }
-      }
-      
-      // 通知権限がある場合、初期通知をスケジュール
-      if (notificationPermission && userProfile && dailyGoal) {
-        try {
-          const nextReminder = await scheduleNextReminder({
-            wakeTime: userProfile.wakeTime,
-            sleepTime: userProfile.sleepTime,
-            targetMl: dailyGoal.targetMl,
-            consumedMl: todayTotal,
-            userSnoozeMin: settings.snoozeMinutes,
-          });
-          
-          if (nextReminder) {
-            console.log('Initial reminder scheduled:', nextReminder.nextAt?.toISOString());
-          }
-        } catch (error) {
-          console.error('Failed to schedule initial reminder:', error);
-        }
+    const clearExistingNotifications = async () => {
+      try {
+        await cancelScheduledReminders();
+        console.log('Cleared scheduled notifications on mount');
+      } catch (error) {
+        console.error('Failed to clear notifications on mount:', error);
       }
     };
-    
+
+    clearExistingNotifications();
+  }, []);
+
+  // 通知権限の確認と初期スケジュール設定
+  useEffect(() => {
+    const initializeNotifications = async () => {
+      let hasPermission = notificationPermission;
+
+      if (!hasPermission) {
+        hasPermission = await requestNotificationPermission();
+        setNotificationPermission(hasPermission);
+      }
+
+      if (!hasPermission) {
+        await cancelScheduledReminders();
+        return;
+      }
+
+      if (!userProfile || !dailyGoal) {
+        await cancelScheduledReminders();
+        return;
+      }
+
+      try {
+        await scheduleButtonTriggeredReminders({
+          wakeTime: userProfile.wakeTime,
+          sleepTime: userProfile.sleepTime,
+          targetMl: dailyGoal.targetMl,
+          consumedMl: getTodayTotal(),
+          userSnoozeMin: settings.snoozeMinutes,
+        });
+        console.log('Initial notifications scheduled');
+      } catch (error) {
+        console.error('Failed to schedule initial notifications:', error);
+      }
+    };
+
     initializeNotifications();
-  }, [notificationPermission, userProfile, dailyGoal, todayTotal, settings.snoozeMinutes]);
+  }, [notificationPermission, userProfile, dailyGoal, settings.snoozeMinutes, getTodayTotal, setNotificationPermission]);
 
   // 今日の摂取ログの読み込み（初回のみ）
   useEffect(() => {
