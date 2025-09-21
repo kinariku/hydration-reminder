@@ -1,22 +1,18 @@
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { CommonHeader } from '../../../components/common-header';
 import { saveUserProfile } from '../../../lib/database';
-import { scheduleNextReminder } from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
-import { UserProfile } from '../../../types';
 
 export default function ProfileSettingsScreen() {
-  const { userProfile, setUserProfile, calculateDailyGoal } = useHydrationStore();
+  const { userProfile, setUserProfile } = useHydrationStore();
   
   const [weight, setWeight] = useState(userProfile?.weightKg?.toString() || '');
   const [height, setHeight] = useState(userProfile?.heightCm?.toString() || '');
@@ -26,61 +22,46 @@ export default function ProfileSettingsScreen() {
   const [sleepTime, setSleepTime] = useState(userProfile?.sleepTime || '23:00');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = async () => {
-    if (!weight || isNaN(Number(weight)) || Number(weight) <= 0) {
-      Alert.alert('エラー', '体重を正しく入力してください');
-      return;
-    }
+  // 自動保存関数
+  const autoSave = useCallback(async () => {
+    if (!userProfile || !weight || isNaN(Number(weight)) || Number(weight) <= 0) return;
 
     // 時刻のバリデーション
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(wakeTime) || !timeRegex.test(sleepTime)) {
-      Alert.alert('エラー', '時刻はHH:MM形式で入力してください（例: 07:00）');
-      return;
-    }
-
-    setIsLoading(true);
+    if (!timeRegex.test(wakeTime) || !timeRegex.test(sleepTime)) return;
 
     try {
-      const profile = {
-        id: userProfile?.id || Date.now().toString(),
+      const updatedProfile = {
+        ...userProfile,
         weightKg: Number(weight),
+        heightCm: Number(height),
         sex,
-        heightCm: height ? Number(height) : undefined,
         activityLevel,
         wakeTime,
         sleepTime,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
 
-      await saveUserProfile(profile);
-      setUserProfile(profile);
-      
-      const goal = calculateDailyGoal(profile);
-      await scheduleNextReminder(wakeTime, sleepTime, goal.targetMl);
+      await saveUserProfile(updatedProfile);
+      setUserProfile(updatedProfile);
 
-      Alert.alert('成功', 'プロフィールを更新しました');
-      router.push('/(tabs)/settings');
+      // 通知の再スケジュールは削除（ボタンを押した時のみ通知を登録する仕様に変更）
     } catch (error) {
-      console.error('Failed to save profile:', error);
-      Alert.alert('エラー', 'プロフィールの保存に失敗しました');
-    } finally {
-      setIsLoading(false);
+      console.error('Auto-save failed:', error);
     }
-  };
+  }, [userProfile, weight, height, sex, activityLevel, wakeTime, sleepTime, setUserProfile]);
 
-  const previewProfile: UserProfile = {
-    id: userProfile?.id || 'preview',
-    weightKg: Number(weight) || userProfile?.weightKg || 0,
-    sex,
-    heightCm: height ? Number(height) : userProfile?.heightCm,
-    activityLevel,
-    wakeTime,
-    sleepTime,
-    timezone: userProfile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-  };
+  // デバウンス付き自動保存
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (weight && height && userProfile) {
+        autoSave();
+      }
+    }, 1000); // 1秒後に自動保存
 
-  const previewGoal = calculateDailyGoal(previewProfile);
+    return () => clearTimeout(timeoutId);
+  }, [weight, height, sex, activityLevel, wakeTime, sleepTime, autoSave]);
+
+
 
   // 性別選択のオプション
   const sexOptions = [
@@ -190,26 +171,7 @@ export default function ProfileSettingsScreen() {
         </View>
 
 
-        {/* 目標摂取量プレビュー */}
-        {weight && (
-          <View style={styles.previewContainer}>
-            <Text style={styles.previewTitle}>💧 目標摂取量</Text>
-            <Text style={styles.previewAmount}>{previewGoal.targetMl}ml</Text>
-            <Text style={styles.previewDescription}>
-              体重 {weight}kg × 35ml + 活動レベル補正
-            </Text>
-          </View>
-        )}
 
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={isLoading || !weight}
-          style={[styles.button, (isLoading || !weight) && styles.buttonDisabled]}
-        >
-          <Text style={styles.buttonText}>
-            {isLoading ? '保存中...' : 'プロフィールを更新'}
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -318,47 +280,5 @@ const styles = StyleSheet.create({
   },
   activityDescriptionSelected: {
     color: '#007AFF',
-  },
-  previewContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  previewTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  previewAmount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  previewDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: '#C7C7CC',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

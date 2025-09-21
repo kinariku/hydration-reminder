@@ -1,14 +1,18 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    AppState,
     ScrollView,
     StyleSheet,
-    Switch,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { MainHeader } from '../../../components/main-header';
+import { NotificationStatusCard } from '../../../components/ui/NotificationStatusCard';
+import { checkNotificationStatus, openNotificationSettings } from '../../../lib/notifications';
+import { formatVolume, getUnitLabel } from '../../../lib/unitConverter';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
 export default function SettingsScreen() {
@@ -23,29 +27,60 @@ export default function SettingsScreen() {
     setNotificationPermission,
   } = useHydrationStore();
 
+  // 実際の通知権限状態を管理
+  const [notificationStatus, setNotificationStatus] = useState({
+    isEnabled: false,
+    canRequest: false,
+    status: 'unknown' as 'granted' | 'denied' | 'undetermined' | 'unknown'
+  });
+
+  // デバッグ用：notificationStatusの変更をログ出力
+  useEffect(() => {
+    console.log('Settings page: notificationStatus changed:', notificationStatus);
+  }, [notificationStatus]);
+
+  // 通知権限状態をチェック
+  const checkNotificationStatusOnLoad = async () => {
+    try {
+      console.log('Settings page: Checking notification status...');
+      const status = await checkNotificationStatus();
+      setNotificationStatus(status);
+      console.log('Settings page: Notification status checked:', status);
+    } catch (error) {
+      console.error('Settings page: Failed to check notification status:', error);
+    }
+  };
+
+  // iPhone設定を開く
+  const handleOpenSettings = async () => {
+    try {
+      await openNotificationSettings();
+    } catch (error) {
+      console.error('Failed to open settings:', error);
+    }
+  };
+
+  // アプリ起動時とフォアグラウンド復帰時に通知権限をチェック
+  useEffect(() => {
+    checkNotificationStatusOnLoad();
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkNotificationStatusOnLoad();
+      }
+    });
+
+    return () => subscription?.remove();
+  }, []);
+
   const handleEditPress = (categoryId: string) => {
     router.push(`/(tabs)/settings/${categoryId}`);
   };
 
-  const handleNotificationToggle = (value: boolean) => {
-    setNotificationPermission(value);
-  };
 
-  const handleAnalyticsToggle = (value: boolean) => {
-    setSettings({ analyticsOptIn: value });
-  };
 
-  const handleAdaptiveModeToggle = (value: boolean) => {
-    if (personalizedSettings) {
-      setPersonalizedSettings({
-        ...personalizedSettings,
-        notificationPattern: {
-          ...personalizedSettings.notificationPattern,
-          adaptiveMode: value
-        }
-      });
-    }
-  };
 
 
   return (
@@ -55,7 +90,10 @@ export default function SettingsScreen() {
         {/* プロフィール情報 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>👤 プロフィール情報</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="person" size={20} color="#007AFF" />
+              <Text style={styles.sectionTitle}>プロフィール情報</Text>
+            </View>
             <TouchableOpacity 
               style={styles.editButton}
               onPress={() => handleEditPress('profile')}
@@ -88,18 +126,12 @@ export default function SettingsScreen() {
               </Text>
             </View>
           </View>
-        </View>
-
-        {/* 目標摂取水分量 */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>💧 目標摂取水分量</Text>
-          </View>
           
+          {/* 目標摂取水分量 */}
           <View style={styles.goalCard}>
             <View style={styles.goalHeader}>
-              <Text style={styles.goalTitle}>今日の目標</Text>
-              <Text style={styles.goalAmount}>{dailyGoal?.targetMl || 0}ml</Text>
+              <Text style={styles.goalTitle}>目標摂取水分量</Text>
+              <Text style={styles.goalAmount}>{formatVolume(dailyGoal?.targetMl || 0, settings.units)}</Text>
             </View>
             <Text style={styles.goalDescription}>
               体重 {userProfile?.weightKg || 0}kg × 35ml + 活動レベル補正
@@ -113,71 +145,60 @@ export default function SettingsScreen() {
         {/* 通知設定 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🔔 通知設定</Text>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={() => handleEditPress('notifications')}
-            >
-              <Text style={styles.editButtonText}>詳細設定</Text>
-            </TouchableOpacity>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="notifications" size={20} color="#007AFF" />
+              <Text style={styles.sectionTitle}>通知設定</Text>
+            </View>
+            {notificationStatus.isEnabled && (
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={() => handleEditPress('notifications')}
+              >
+                <Text style={styles.editButtonText}>詳細設定</Text>
+              </TouchableOpacity>
+            )}
           </View>
           
-          <View style={styles.infoCard}>
-            <View style={styles.switchRowWithBorder}>
-              <View style={styles.switchContent}>
-                <Text style={styles.switchLabel}>通知を有効にする</Text>
-                <Text style={styles.switchDescription}>
-                  水分補給のリマインダーを受け取ります
+          <NotificationStatusCard 
+            isEnabled={notificationStatus.isEnabled}
+            onOpenSettings={handleOpenSettings}
+            showOpenButton={true}
+          />
+
+          {notificationStatus.isEnabled && (
+            <View style={styles.infoCard}>
+              <View style={styles.infoRowWithBorder}>
+                <Text style={styles.infoLabel}>起床・就寝時刻</Text>
+                <Text style={styles.infoValue}>
+                  {userProfile?.wakeTime || '未設定'} - {userProfile?.sleepTime || '未設定'}
                 </Text>
               </View>
-              <Switch
-                value={notificationPermission}
-                onValueChange={handleNotificationToggle}
-              />
-            </View>
 
-            <View style={styles.infoRowWithBorder}>
-              <Text style={styles.infoLabel}>起床・就寝時刻</Text>
-              <Text style={styles.infoValue}>
-                {userProfile?.wakeTime || '未設定'} - {userProfile?.sleepTime || '未設定'}
-              </Text>
-            </View>
+              <View style={styles.infoRowWithBorder}>
+                <Text style={styles.infoLabel}>スヌーズ時間</Text>
+                <Text style={styles.infoValue}>{settings.snoozeMinutes}分</Text>
+              </View>
 
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>スヌーズ時間</Text>
-              <Text style={styles.infoValue}>{settings.snoozeMinutes}分</Text>
-            </View>
-
-            {personalizedSettings && (
-              <>
-                <View style={styles.infoRowWithBorder}>
+              {personalizedSettings && (
+                <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>通知頻度</Text>
                   <Text style={styles.infoValue}>
                     {personalizedSettings.notificationPattern.frequency === 'high' ? '高' :
                      personalizedSettings.notificationPattern.frequency === 'medium' ? '中' : '低'}
                   </Text>
                 </View>
-                <View style={styles.switchRow}>
-                  <View style={styles.switchContent}>
-                    <Text style={styles.switchLabel}>学習モード</Text>
-                    <Text style={styles.switchDescription}>
-                      あなたの行動パターンに基づいて通知時間を自動調整
-                    </Text>
-                  </View>
-                  <Switch
-                    value={personalizedSettings.notificationPattern.adaptiveMode}
-                    onValueChange={handleAdaptiveModeToggle}
-                  />
-                </View>
-              </>
-            )}
-          </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* アプリ設定 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>⚙️ アプリ設定</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="settings" size={20} color="#007AFF" />
+              <Text style={styles.sectionTitle}>アプリ設定</Text>
+            </View>
             <TouchableOpacity 
               style={styles.editButton}
               onPress={() => handleEditPress('app')}
@@ -189,24 +210,18 @@ export default function SettingsScreen() {
           <View style={styles.infoCard}>
             <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>単位</Text>
-              <Text style={styles.infoValue}>{settings.units === 'ml' ? 'ミリリットル (ml)' : 'オンス (oz)'}</Text>
+              <Text style={styles.infoValue}>{getUnitLabel(settings.units)}</Text>
             </View>
             <View style={styles.infoRowWithBorder}>
               <Text style={styles.infoLabel}>クイックボタン</Text>
-              <Text style={styles.infoValue}>{settings.presetMl.join(', ')}ml</Text>
+              <Text style={[styles.infoValue, styles.presetValue]}>{settings.presetMl.map(preset => formatVolume(preset, settings.units)).join(', ')}</Text>
             </View>
 
-            <View style={styles.switchRow}>
-              <View style={styles.switchContent}>
-                <Text style={styles.switchLabel}>分析データの送信</Text>
-                <Text style={styles.switchDescription}>
-                  アプリの改善のための匿名データを送信します
-                </Text>
-              </View>
-              <Switch
-                value={settings.analyticsOptIn}
-                onValueChange={handleAnalyticsToggle}
-              />
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>分析データの送信</Text>
+              <Text style={styles.infoValue}>
+                {settings.analyticsOptIn ? '有効' : '無効'}
+              </Text>
             </View>
           </View>
         </View>
@@ -215,7 +230,10 @@ export default function SettingsScreen() {
         {/* データ管理 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>💾 データ管理</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="server" size={20} color="#007AFF" />
+              <Text style={styles.sectionTitle}>データ管理</Text>
+            </View>
           </View>
 
           <View style={styles.infoCard}>
@@ -231,7 +249,10 @@ export default function SettingsScreen() {
         {/* アプリ情報 */}
         <View style={styles.appInfoSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>ℹ️ アプリ情報</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="information-circle" size={20} color="#007AFF" />
+              <Text style={styles.sectionTitle}>アプリ情報</Text>
+            </View>
           </View>
 
           <View style={styles.infoCard}>
@@ -310,6 +331,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingVertical: 4,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
@@ -361,35 +387,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'right',
   },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  switchRowWithBorder: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
-  },
-  switchContent: {
+  presetValue: {
     flex: 1,
-    marginRight: 12,
-  },
-  switchLabel: {
-    fontSize: 16,
-    color: '#1C1C1E',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  switchDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 18,
-    marginTop: 2,
+    flexWrap: 'wrap',
+    textAlign: 'right',
+    maxWidth: '50%',
   },
   statsCard: {
     backgroundColor: '#FFFFFF',
@@ -453,7 +455,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#007AFF',
-    marginTop: 4,
+    marginTop: 12,
   },
   goalHeader: {
     flexDirection: 'row',

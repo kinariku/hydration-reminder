@@ -2,7 +2,7 @@ import * as BackgroundFetch from 'expo-background-fetch';
 import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { planNextReminder, ReminderPlanResult } from './reminderPlanner';
 
 const BACKGROUND_FETCH_TASK = 'background-fetch-task';
@@ -47,6 +47,57 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
     return status === 'granted';
   } catch (error) {
     console.warn('Notification permission request failed:', error);
+    return false;
+  }
+};
+
+// iPhoneの通知設定状態を確認する関数
+export const checkNotificationStatus = async (): Promise<{
+  isEnabled: boolean;
+  canRequest: boolean;
+  status: string;
+}> => {
+  try {
+    if (Platform.OS === 'web') {
+      return {
+        isEnabled: false,
+        canRequest: false,
+        status: 'not_supported'
+      };
+    }
+
+    const { status } = await Notifications.getPermissionsAsync();
+    
+    return {
+      isEnabled: status === 'granted',
+      canRequest: status !== 'denied',
+      status
+    };
+  } catch (error) {
+    console.error('Failed to check notification status:', error);
+    return {
+      isEnabled: false,
+      canRequest: false,
+      status: 'error'
+    };
+  }
+};
+
+// iPhone設定の通知画面を開く関数
+export const openNotificationSettings = async (): Promise<boolean> => {
+  try {
+    if (Platform.OS === 'ios') {
+      // iOS設定アプリの通知設定画面を開く
+      const url = 'app-settings:';
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to open notification settings:', error);
     return false;
   }
 };
@@ -118,9 +169,6 @@ export const scheduleNextReminder = async (
       remainingMl: plan.remainMl,
       remainingMinutes: plan.remainMin,
     });
-
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    await new Promise((resolve) => setTimeout(resolve, 200));
 
     if (!plan.nextAt) {
       console.log('No further reminders scheduled for today (target reached or day ended).');
@@ -312,7 +360,7 @@ export const scheduleButtonTriggeredReminders = async (
     }
 
     // 1. 今日の次の通知 + スヌーズ5つをスケジュール
-    if (now < todaySleep) {
+    if (now < todaySleep && consumedMl < targetMl) {
       const plan = await scheduleNextReminder({
         wakeTime,
         sleepTime,
@@ -330,34 +378,51 @@ export const scheduleButtonTriggeredReminders = async (
         });
         console.log('Today\'s next reminder + 5 snoozes scheduled');
       }
+    } else {
+      console.log('No further reminders scheduled for today (target reached or day ended).');
     }
 
-    // 2. 明日から7日分の起床時刻の目覚め通知をスケジュール
+    // 2. 明日から7日分の起床時刻の目覚め通知をスケジュール（既存の通知をチェックして重複を避ける）
+    const existingNotifications = await Notifications.getAllScheduledNotificationsAsync();
+    const existingMorningNotifications = existingNotifications.filter(n => 
+      n.content.data?.type === 'morning_wakeup'
+    );
+
     for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {
       const targetDate = new Date(today);
       targetDate.setDate(targetDate.getDate() + dayOffset);
       
       const dayWake = parseTimeToDate(wakeTime, targetDate);
       
-      // 起床時刻の目覚め通知をスケジュール
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '🌅 おはようございます！',
-          body: `今日も水分補給を始めましょう！${targetMl}mlの目標に向けて頑張りましょう`,
-          sound: true,
-          data: {
-            type: 'morning_wakeup',
-            dayOffset,
-            targetMl
-          },
-        },
-        trigger: {
-          type: SchedulableTriggerInputTypes.DATE,
-          date: dayWake,
-        },
+      // 既に同じ日の通知が存在するかチェック
+      const alreadyScheduled = existingMorningNotifications.some(n => {
+        const notificationDate = new Date(n.trigger.date);
+        return notificationDate.toDateString() === dayWake.toDateString();
       });
 
-      console.log(`Day ${dayOffset} morning wakeup scheduled for ${dayWake.toLocaleDateString()} at ${dayWake.toLocaleTimeString()}`);
+      if (!alreadyScheduled) {
+        // 起床時刻の目覚め通知をスケジュール
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '🌅 おはようございます！',
+            body: `今日も水分補給を始めましょう！${targetMl}mlの目標に向けて頑張りましょう`,
+            sound: true,
+            data: {
+              type: 'morning_wakeup',
+              dayOffset,
+              targetMl
+            },
+          },
+          trigger: {
+            type: SchedulableTriggerInputTypes.DATE,
+            date: dayWake,
+          },
+        });
+
+        console.log(`Day ${dayOffset} morning wakeup scheduled for ${dayWake.toLocaleDateString()} at ${dayWake.toLocaleTimeString()}`);
+      } else {
+        console.log(`Day ${dayOffset} morning wakeup already scheduled, skipping`);
+      }
     }
 
     console.log('Button-triggered reminders scheduled successfully');

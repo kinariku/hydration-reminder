@@ -37,6 +37,8 @@ export interface Settings {
   snoozeMinutes: number;
   quietHours: { start: string; end: string }[];
   analyticsOptIn: boolean;
+  language: 'ja' | 'en';
+  theme: 'light' | 'dark' | 'system';
 }
 
 export interface Lifestyle {

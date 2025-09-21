@@ -39,6 +39,8 @@ export const useHydrationStore = create<HydrationStore>()(
         snoozeMinutes: 15,
         quietHours: [],
         analyticsOptIn: false,
+        language: 'ja',
+        theme: 'system',
       },
       personalizedSettings: null,
       isOnboarded: false,

@@ -5,7 +5,8 @@ import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
 import { getLocalDateString } from '../../lib/date';
-import { cancelSnoozeReminders, requestNotificationPermission, scheduleButtonTriggeredReminders } from '../../lib/notifications';
+import { cancelSnoozeReminders, requestNotificationPermission } from '../../lib/notifications';
+import { formatVolume } from '../../lib/unitConverter';
 import { useHydrationStore } from '../../stores/hydrationStore';
 
 export default function HomeScreen() {
@@ -31,15 +32,21 @@ export default function HomeScreen() {
     const recordCount = todayIntake.length;
     const avgIntake = recordCount > 0 ? Math.round(totalIntake / recordCount) : 0;
     return { totalIntake, recordCount, avgIntake };
-  }, [todayIntake]);
+  }, [todayIntake]); // todayIntakeが変更された時のみ再計算
 
+  // 通知権限の確認（初回のみ）
   useEffect(() => {
-    // Request notification permission on first load
     if (!notificationPermission) {
-      requestNotificationPermission().then(setNotificationPermission);
+      requestNotificationPermission().then((permission) => {
+        if (permission) {
+          setNotificationPermission(true);
+        }
+      });
     }
+  }, []);
 
-    // Load today's intake logs from database
+  // 今日の摂取ログの読み込み（初回のみ）
+  useEffect(() => {
     const loadTodayIntake = () => {
       const today = getLocalDateString();
       const todayLogs = getIntakeLogs(today);
@@ -47,36 +54,7 @@ export default function HomeScreen() {
     };
 
     loadTodayIntake();
-
-    // Schedule initial reminders if permission is granted and user profile exists
-    const scheduleNotifications = async () => {
-      if (notificationPermission && userProfile && dailyGoal) {
-        try {
-          // 初期スケジュールを設定（今日の次通知+スヌーズ + 明日から7日分の起床通知）
-          await scheduleButtonTriggeredReminders({
-            wakeTime: userProfile.wakeTime,
-            sleepTime: userProfile.sleepTime,
-            targetMl: dailyGoal.targetMl,
-            consumedMl: getTodayTotal(),
-            reminderCount: 8,
-          });
-          
-          console.log('Initial reminders scheduled on app start');
-        } catch (error) {
-          console.warn('Failed to schedule initial reminders:', error);
-        }
-      }
-    };
-
-    scheduleNotifications();
-  }, [
-    notificationPermission,
-    userProfile,
-    dailyGoal,
-    getTodayTotal,
-    setNotificationPermission,
-    setTodayIntake,
-  ]);
+  }, []);
 
   const handleQuickAdd = async (amount: number) => {
     const log = {
@@ -105,24 +83,8 @@ export default function HomeScreen() {
       }
     }
 
-    // 水を飲んだ後に通知スケジュールをリセット・再登録
-    if (notificationPermission && userProfile && dailyGoal) {
-      const updatedTotal = getTodayTotal();
-      try {
-        // ボタン押下時のスケジュールを実行（リセット + 再登録）
-        await scheduleButtonTriggeredReminders({
-          wakeTime: userProfile.wakeTime,
-          sleepTime: userProfile.sleepTime,
-          targetMl: dailyGoal.targetMl,
-          consumedMl: updatedTotal,
-          reminderCount: 8,
-        });
-        
-        console.log('Reminders reset and rescheduled after water intake');
-      } catch (error) {
-        console.error('Failed to reset and reschedule reminders:', error);
-      }
-    }
+    // 通知の再スケジュールは削除（ボタンを押した時のみ通知を登録する仕様に変更）
+    // 必要に応じて、特定の条件でのみ通知をスケジュールする
   };
 
   if (!userProfile || !dailyGoal) {
@@ -149,34 +111,41 @@ export default function HomeScreen() {
         bounces={true}
         alwaysBounceVertical={true}
       >
-        <Text style={styles.title}>💧 今日の水分摂取</Text>
-        
-        <View style={styles.progressContainer}>
-          <ProgressRing
-            progress={progress}
-            size={200}
-            color={progress >= 1 ? '#34C759' : '#007AFF'}
-          >
-            <View style={styles.progressContent}>
-              <Text style={styles.progressText}>
-                {Math.round(progress * 100)}%
-              </Text>
-              <Text style={styles.amountText}>
-                {todayTotal}ml / {dailyGoal.targetMl}ml
-              </Text>
-            </View>
-          </ProgressRing>
+        {/* メイン進捗カード */}
+        <View style={styles.mainProgressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>今日の水分摂取</Text>
+            <Text style={styles.progressSubtitle}>
+              {formatVolume(todayTotal, settings.units)} / {formatVolume(dailyGoal.targetMl, settings.units)}
+            </Text>
+          </View>
+          
+          <View style={styles.progressContainer}>
+            <ProgressRing
+              progress={progress}
+              size={180}
+              color={progress >= 1 ? '#34C759' : '#007AFF'}
+            >
+              <View style={styles.progressContent}>
+                <Text style={styles.progressText}>
+                  {Math.round(progress * 100)}%
+                </Text>
+                <Text style={styles.progressLabel}>達成率</Text>
+              </View>
+            </ProgressRing>
+          </View>
+
+          <View style={styles.remainingContainer}>
+            <Text style={styles.remainingText}>
+              {remaining > 0 ? `あと ${formatVolume(remaining, settings.units)} で目標達成！` : '🎉 目標達成！おめでとうございます！'}
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.remainingContainer}>
-          <Text style={styles.remainingText}>
-            あと {remaining}ml で目標達成！
-          </Text>
-        </View>
-
-        <View style={styles.quickAddContainer}>
-          <Text style={styles.quickAddTitle}>クイック追加</Text>
-          <View style={styles.buttonRow}>
+        {/* クイック追加セクション */}
+        <View style={styles.quickAddCard}>
+          <Text style={styles.quickAddTitle}>💧 水分を追加</Text>
+          <View style={styles.buttonGrid}>
             {settings.presetMl.map((amount) => (
               <QuickAddButton
                 key={amount}
@@ -187,38 +156,40 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{todayTotal}ml</Text>
-            <Text style={styles.statLabel}>今日の摂取量</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {Math.round(progress * 100)}%
-            </Text>
-            <Text style={styles.statLabel}>達成率</Text>
+        {/* 今日の記録カード */}
+        <View style={styles.statsCard}>
+          <Text style={styles.statsTitle}>📊 今日の記録</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{stats.recordCount}</Text>
+              <Text style={styles.statLabel}>記録回数</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{formatVolume(stats.avgIntake, settings.units)}</Text>
+              <Text style={styles.statLabel}>平均摂取量</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>
+                {progress >= 1 ? '🎉' : Math.round(progress * 100) + '%'}
+              </Text>
+              <Text style={styles.statLabel}>進捗状況</Text>
+            </View>
           </View>
         </View>
 
-        {/* データ統計セクション */}
-        <View style={styles.dataStatsSection}>
-          <Text style={styles.sectionTitle}>📊 今日の記録</Text>
-          <View style={styles.dataStatsCard}>
-            <View style={styles.dataStatsRow}>
-              <View style={styles.dataStatItem}>
-                <Text style={styles.dataStatValue}>{stats.recordCount}</Text>
-                <Text style={styles.dataStatLabel}>記録数</Text>
-              </View>
-              <View style={styles.dataStatItem}>
-                <Text style={styles.dataStatValue}>{stats.totalIntake}ml</Text>
-                <Text style={styles.dataStatLabel}>総摂取量</Text>
-              </View>
-              <View style={styles.dataStatItem}>
-                <Text style={styles.dataStatValue}>{stats.avgIntake}ml</Text>
-                <Text style={styles.dataStatLabel}>平均摂取量</Text>
-              </View>
-            </View>
-          </View>
+        {/* モチベーションカード */}
+        <View style={styles.motivationCard}>
+          <Text style={styles.motivationTitle}>💪 今日も頑張ろう！</Text>
+          <Text style={styles.motivationText}>
+            {progress >= 1 
+              ? '素晴らしい！水分補給の習慣が身についています。'
+              : progress >= 0.7
+              ? '順調です！あと少しで目標達成です。'
+              : progress >= 0.3
+              ? '良いペースです！この調子で続けましょう。'
+              : '今日から始めましょう！小さな一歩が大きな変化につながります。'
+            }
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -234,9 +205,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
-    alignItems: 'center',
   },
   centerContent: {
     flex: 1,
@@ -254,105 +224,152 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
   },
+  
+  // メイン進捗カード
+  mainProgressCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  progressHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  progressTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 4,
+  },
+  progressSubtitle: {
+    fontSize: 16,
+    color: '#8E8E93',
+  },
   progressContainer: {
-    marginVertical: 30,
+    alignItems: 'center',
+    marginVertical: 20,
   },
   progressContent: {
     alignItems: 'center',
   },
   progressText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#1C1C1E',
   },
-  amountText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    marginTop: 4,
-  },
-  remainingContainer: {
-    marginBottom: 32,
-  },
-  remainingText: {
-    fontSize: 18,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  quickAddContainer: {
-    width: '100%',
-    marginBottom: 32,
-  },
-  quickAddTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  statLabel: {
+  progressLabel: {
     fontSize: 14,
     color: '#8E8E93',
     marginTop: 4,
   },
-  dataStatsSection: {
-    width: '100%',
-    marginTop: 32,
+  remainingContainer: {
+    alignItems: 'center',
+    marginTop: 16,
   },
-  sectionTitle: {
-    fontSize: 20,
+  remainingText: {
+    fontSize: 16,
+    color: '#007AFF',
     fontWeight: '600',
-    color: '#000',
-    marginBottom: 15,
     textAlign: 'center',
   },
-  dataStatsCard: {
+
+  // クイック追加カード
+  quickAddCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
   },
-  dataStatsRow: {
+  quickAddTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  buttonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+
+  // 統計カード
+  statsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
-  dataStatItem: {
+  statItem: {
     alignItems: 'center',
     flex: 1,
   },
-  dataStatValue: {
+  statValue: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#007AFF',
+    marginBottom: 4,
   },
-  dataStatLabel: {
+  statLabel: {
     fontSize: 12,
     color: '#8E8E93',
-    marginTop: 4,
     textAlign: 'center',
+  },
+
+  // モチベーションカード
+  motivationCard: {
+    backgroundColor: '#F0F8FF',
+    borderRadius: 16,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  motivationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  motivationText: {
+    fontSize: 14,
+    color: '#1C1C1E',
+    lineHeight: 20,
   },
 });

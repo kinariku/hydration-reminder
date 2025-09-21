@@ -1,73 +1,106 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Alert,
     ScrollView,
     StyleSheet,
     Switch,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { CommonHeader } from '../../../components/common-header';
+import { formatVolume } from '../../../lib/unitConverter';
 import { useHydrationStore } from '../../../stores/hydrationStore';
+
+// プリセット選択肢（一般的な容器の容量）
+const PRESET_OPTIONS = [
+  { id: 'small', name: '一口分', value: 100 },
+  { id: 'cup', name: 'カップ1杯', value: 150 },
+  { id: 'glass', name: 'グラス1杯', value: 200 },
+  { id: 'mug', name: 'マグカップ1杯', value: 250 },
+  { id: 'jockey', name: 'ジョッキ1杯', value: 400 },
+  { id: 'bottle', name: 'ペットボトル1本', value: 500 },
+];
 
 export default function AppSettingsScreen() {
   const { settings, setSettings } = useHydrationStore();
-  const [isEditingPresets, setIsEditingPresets] = useState(false);
-  const [newPresets, setNewPresets] = useState(settings.presetMl.join(', '));
+  const [selectedPresets, setSelectedPresets] = useState<Set<string>>(new Set());
 
-  const handleSavePresets = () => {
-    const presets = newPresets
-      .split(',')
-      .map(p => parseInt(p.trim()))
-      .filter(p => !isNaN(p) && p > 0)
-      .slice(0, 6); // 最大6個まで
+  // 現在の設定を反映
+  useEffect(() => {
+    const current = new Set<string>();
+    settings.presetMl.forEach(preset => {
+      const option = PRESET_OPTIONS.find(opt => opt.value === preset);
+      if (option) {
+        current.add(option.id);
+      }
+    });
+    setSelectedPresets(current);
+  }, [settings.presetMl]);
 
-    if (presets.length === 0) {
-      Alert.alert('エラー', '有効な数値を入力してください');
-      return;
+  // プリセット選択
+  const togglePreset = (presetId: string) => {
+    const newSelected = new Set(selectedPresets);
+    if (newSelected.has(presetId)) {
+      newSelected.delete(presetId);
+    } else {
+      newSelected.add(presetId);
     }
-
-    setSettings({ presetMl: presets });
-    setIsEditingPresets(false);
-    Alert.alert('完了', 'クイックボタンを更新しました');
+    setSelectedPresets(newSelected);
+    
+    // 自動保存
+    const values = Array.from(newSelected)
+      .map(id => PRESET_OPTIONS.find(opt => opt.id === id)?.value)
+      .filter(val => val !== undefined)
+      .sort((a, b) => a - b);
+    
+    setSettings({ presetMl: values });
   };
 
-  const unitOptions = [
-    { label: 'ミリリットル (ml)', value: 'ml' },
-    { label: 'オンス (oz)', value: 'oz' },
-  ];
+  // 単位変更
+  const handleUnitChange = (unit: 'ml' | 'oz') => {
+    setSettings({ units: unit });
+  };
 
   return (
     <View style={styles.container}>
       <CommonHeader title="アプリ設定" />
       
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView style={styles.content}>
         {/* 単位設定 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>表示設定</Text>
-          
           <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>単位</Text>
-            <View style={styles.optionContainer}>
-              {unitOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.optionButton,
-                    settings.units === option.value && styles.optionButtonSelected
-                  ]}
-                  onPress={() => setSettings({ units: option.value as 'ml' | 'oz' })}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    settings.units === option.value && styles.optionTextSelected
-                  ]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <Text style={styles.settingLabel}>容量の単位</Text>
+            <View style={styles.unitSpacing} />
+            <View style={styles.unitOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.unitOption,
+                  settings.units === 'ml' && styles.unitOptionSelected
+                ]}
+                onPress={() => handleUnitChange('ml')}
+              >
+                <Text style={[
+                  styles.unitOptionText,
+                  settings.units === 'ml' && styles.unitOptionTextSelected
+                ]}>
+                  ミリリットル (ml)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.unitOption,
+                  settings.units === 'oz' && styles.unitOptionSelected
+                ]}
+                onPress={() => handleUnitChange('oz')}
+              >
+                <Text style={[
+                  styles.unitOptionText,
+                  settings.units === 'oz' && styles.unitOptionTextSelected
+                ]}>
+                  オンス (oz)
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -75,83 +108,71 @@ export default function AppSettingsScreen() {
         {/* クイックボタン設定 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>クイックボタン</Text>
-          
           <View style={styles.settingItem}>
-            <View style={styles.settingHeader}>
-              <Text style={styles.settingLabel}>プリセット量</Text>
-              <TouchableOpacity
-                onPress={() => setIsEditingPresets(!isEditingPresets)}
-                style={styles.editButton}
-              >
-                <Text style={styles.editButtonText}>
-                  {isEditingPresets ? 'キャンセル' : '編集'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            
-            {isEditingPresets ? (
-              <View>
-                <TextInput
-                  style={styles.textInput}
-                  value={newPresets}
-                  onChangeText={setNewPresets}
-                  placeholder="100, 200, 300, 500"
-                  keyboardType="numeric"
-                />
-                <Text style={styles.helpText}>
-                  カンマ区切りで数値を入力してください（例: 100, 200, 300, 500）
-                </Text>
+            <Text style={styles.settingDescription}>
+              ホーム画面に表示する水分量ボタンを選択してください
+            </Text>
+            <View style={styles.presetGrid}>
+              {PRESET_OPTIONS.map((option) => (
                 <TouchableOpacity
-                  onPress={handleSavePresets}
-                  style={styles.saveButton}
+                  key={option.id}
+                  style={[
+                    styles.presetButton,
+                    selectedPresets.has(option.id) && styles.presetButtonSelected
+                  ]}
+                  onPress={() => togglePreset(option.id)}
                 >
-                  <Text style={styles.saveButtonText}>保存</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.presetContainer}>
-                {settings.presetMl.map((preset, index) => (
-                  <View key={index} style={styles.presetItem}>
-                    <Text style={styles.presetText}>{preset}ml</Text>
+                  <View style={styles.presetContent}>
+                    <View style={styles.presetTextContainer}>
+                      <Text style={[
+                        styles.presetButtonText,
+                        selectedPresets.has(option.id) && styles.presetButtonTextSelected
+                      ]}>
+                        {option.name}
+                      </Text>
+                      <Text style={[
+                        styles.presetButtonValue,
+                        selectedPresets.has(option.id) && styles.presetButtonValueSelected
+                      ]}>
+                        {formatVolume(option.value, settings.units)}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.checkbox,
+                      selectedPresets.has(option.id) && styles.checkboxSelected
+                    ]}>
+                      {selectedPresets.has(option.id) && (
+                        <Text style={styles.checkmark}>✓</Text>
+                      )}
+                    </View>
                   </View>
-                ))}
-              </View>
-            )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.selectedCount}>
+              選択済み: {selectedPresets.size}個のボタン
+            </Text>
           </View>
         </View>
 
         {/* プライバシー設定 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>プライバシー</Text>
-          
           <View style={styles.settingItem}>
-            <View style={styles.switchContainer}>
-              <View style={styles.switchContent}>
-                <Text style={styles.settingLabel}>分析データの送信</Text>
+            <View style={styles.settingRow}>
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>使用データの送信</Text>
                 <Text style={styles.settingDescription}>
-                  アプリの改善のための匿名データを送信します
+                  アプリの改善のために匿名化されたデータを送信します
                 </Text>
               </View>
               <Switch
                 value={settings.analyticsOptIn}
                 onValueChange={(value) => setSettings({ analyticsOptIn: value })}
+                trackColor={{ false: '#E5E5EA', true: '#34C759' }}
+                thumbColor={settings.analyticsOptIn ? '#FFFFFF' : '#FFFFFF'}
               />
             </View>
-          </View>
-        </View>
-
-        {/* アプリ情報 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>アプリ情報</Text>
-          
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>バージョン</Text>
-            <Text style={styles.settingValue}>1.0.0</Text>
-          </View>
-          
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>開発者</Text>
-            <Text style={styles.settingValue}>StayHydrated Team</Text>
           </View>
         </View>
       </ScrollView>
@@ -165,14 +186,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   content: {
-    padding: 16,
-    paddingBottom: 32,
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 16,
@@ -181,119 +203,126 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
-  settingHeader: {
+  settingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  settingContent: {
+    flex: 1,
+    marginRight: 12,
   },
   settingLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#1C1C1E',
+    marginBottom: 4,
   },
   settingDescription: {
     fontSize: 14,
     color: '#8E8E93',
-    marginTop: 4,
+    marginBottom: 16,
   },
-  settingValue: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-  optionContainer: {
+  unitOptions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  optionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  unitOption: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E5E5EA',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    minWidth: 120,
+    minHeight: 44,
   },
-  optionButtonSelected: {
+  unitOptionSelected: {
     borderColor: '#007AFF',
     backgroundColor: '#F0F8FF',
   },
-  optionText: {
-    fontSize: 14,
+  unitOptionText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
   },
-  optionTextSelected: {
+  unitOptionTextSelected: {
     color: '#007AFF',
   },
-  editButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#F2F2F7',
+  unitSpacing: {
+    height: 6,
   },
-  editButtonText: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-  },
-  helpText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginBottom: 12,
-    lineHeight: 16,
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignSelf: 'flex-start',
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  presetContainer: {
+  presetGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginBottom: 16,
   },
-  presetItem: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
+  presetButton: {
+    width: '48%',
+    paddingVertical: 16,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
   },
-  presetText: {
-    fontSize: 14,
+  presetButtonSelected: {
+    borderColor: '#007AFF',
+    backgroundColor: '#F0F8FF',
+  },
+  presetButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1C1C1E',
-    fontWeight: '500',
+    marginBottom: 4,
   },
-  switchContainer: {
+  presetButtonTextSelected: {
+    color: '#007AFF',
+  },
+  presetButtonValue: {
+    fontSize: 12,
+    color: '#8E8E93',
+    flexWrap: 'wrap',
+  },
+  presetButtonValueSelected: {
+    color: '#007AFF',
+  },
+  presetContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  switchContent: {
+  presetTextContainer: {
     flex: 1,
-    marginRight: 12,
+    flexWrap: 'wrap',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  checkboxSelected: {
+    borderColor: '#007AFF',
+    backgroundColor: '#007AFF',
+  },
+  checkmark: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  selectedCount: {
+    fontSize: 14,
+    color: '#007AFF',
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
