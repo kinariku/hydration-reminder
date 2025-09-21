@@ -3,6 +3,7 @@ import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 import { planNextReminder, ReminderPlanResult } from '../reminderPlanner';
 import { NOTIFICATION_CHANNEL_ID } from './constants';
+import { ensureNotificationChannel } from './channels';
 import { parseTimeToDate } from './helpers';
 import { ensureNotificationsEnabled } from './permissions';
 
@@ -49,6 +50,8 @@ export const scheduleNextReminderInternal = async (
   }
 
   const { title, body } = buildNotificationMessage(plan);
+
+  await ensureNotificationChannel();
 
   await Notifications.scheduleNotificationAsync({
     content: {

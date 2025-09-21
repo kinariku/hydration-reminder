@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 import { NOTIFICATION_CHANNEL_ID } from './constants';
+import { ensureNotificationChannel } from './channels';
 import { waitFor } from './helpers';
 import { ensureNotificationsEnabled } from './permissions';
 
@@ -21,6 +22,8 @@ export const scheduleReminders = async (
 
     await Notifications.cancelAllScheduledNotificationsAsync();
     await waitFor(500);
+
+    await ensureNotificationChannel();
 
     const times = calculateReminderTimes(wakeTime, sleepTime, reminderCount);
     const maxNotifications = Math.min(times.length, 64);
