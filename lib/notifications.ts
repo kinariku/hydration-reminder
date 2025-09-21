@@ -24,6 +24,9 @@ const SNOOZE_CONFIG = {
   maxIntervalMinutes: 30, // 最大30分間隔
 };
 
+const SNOOZE_NOTIFICATION_CATEGORY = 'hydration_snooze';
+const SNOOZE_NOTIFICATION_TYPES = new Set<string>(['initial', 'snooze']);
+
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -228,8 +231,8 @@ export const scheduleSnoozeReminders = async (
 
     console.log('Scheduling snooze reminders...');
 
-    // 既存の通知をキャンセル
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    // 既存のスヌーズ通知のみをキャンセル
+    await cancelSnoozeReminders();
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const {
@@ -244,6 +247,8 @@ export const scheduleSnoozeReminders = async (
 
     let scheduledCount = 0;
     let nextSnoozeAt: Date | null = null;
+    const sequenceId = `snooze:${baseTime.getTime()}`;
+    const baseTimeIso = baseTime.toISOString();
 
     // 最初の通知
     const initialMessage = `水分補給の時間です！${suggestMl}ml どうですか？`;
@@ -254,6 +259,9 @@ export const scheduleSnoozeReminders = async (
         sound: true,
         data: {
           type: 'initial',
+          category: SNOOZE_NOTIFICATION_CATEGORY,
+          sequenceId,
+          baseTime: baseTimeIso,
           suggestMl,
           snoozeCount: 0
         },
@@ -277,6 +285,10 @@ export const scheduleSnoozeReminders = async (
           sound: true,
           data: {
             type: 'snooze',
+            category: SNOOZE_NOTIFICATION_CATEGORY,
+            sequenceId,
+            baseTime: baseTimeIso,
+            scheduledFor: snoozeTime.toISOString(),
             suggestMl,
             snoozeCount: i + 1
           },
@@ -306,8 +318,36 @@ export const scheduleSnoozeReminders = async (
 // スヌーズ通知をキャンセル（水を飲んだ時に呼び出し）
 export const cancelSnoozeReminders = async (): Promise<void> => {
   try {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    console.log('All snooze reminders cancelled');
+    const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+
+    const snoozeNotifications = scheduledNotifications.filter(notification => {
+      const data = notification.content.data ?? {};
+      const type = typeof data.type === 'string' ? data.type : undefined;
+      const category = typeof data.category === 'string' ? data.category : undefined;
+
+      if (category === SNOOZE_NOTIFICATION_CATEGORY) {
+        return true;
+      }
+
+      if (type && SNOOZE_NOTIFICATION_TYPES.has(type)) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (snoozeNotifications.length === 0) {
+      console.log('No snooze reminders to cancel');
+      return;
+    }
+
+    await Promise.all(
+      snoozeNotifications.map(notification =>
+        Notifications.cancelScheduledNotificationAsync(notification.identifier)
+      )
+    );
+
+    console.log(`Cancelled ${snoozeNotifications.length} snooze reminders`);
   } catch (error) {
     console.warn('Failed to cancel snooze reminders:', error);
   }
