@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { MainHeader } from '../../components/main-header';
 import { useHydrationStore } from '../../stores/hydrationStore';
 
 export default function SettingsScreen() {
@@ -48,7 +49,9 @@ export default function SettingsScreen() {
 
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
+      <MainHeader title="設定" />
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* プロフィール情報 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -259,7 +262,8 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -267,6 +271,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',
+  },
+  scrollView: {
+    flex: 1,
   },
   header: {
     padding: 16,

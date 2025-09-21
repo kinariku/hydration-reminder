@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { MainHeader } from '../../components/main-header';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
@@ -74,19 +74,21 @@ export default function HomeScreen() {
 
   if (!userProfile || !dailyGoal) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
+        <MainHeader title="StayHydrated" />
         <View style={styles.centerContent}>
           <Text style={styles.title}>水分補給リマインダー</Text>
           <Text style={styles.subtitle}>
             プロフィールを設定して始めましょう
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <MainHeader title="StayHydrated" />
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.content}

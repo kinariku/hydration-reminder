@@ -58,6 +58,11 @@ export const COMMON_HEADER_STYLES = {
     textAlign: 'center' as const,
     marginHorizontal: 16,
   },
+  headerLeft: {
+    width: HEADER_CONSTANTS.BUTTON_SIZE,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
   headerRight: {
     width: HEADER_CONSTANTS.BUTTON_SIZE,
     alignItems: 'center' as const,
