@@ -157,6 +157,7 @@ export default function NotificationSettingsScreen() {
   const handleViewScheduledNotifications = async () => {
     try {
       const notifications = await getScheduledNotifications();
+      console.log('Scheduled notifications data:', JSON.stringify(notifications, null, 2));
       setScheduledNotifications(notifications);
       setShowNotificationList(true);
     } catch (error) {
@@ -165,15 +166,51 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  const formatNotificationTime = (date: Date) => {
-    return date.toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+  const formatNotificationTime = (notification: any) => {
+    try {
+      console.log('Formatting notification:', JSON.stringify(notification, null, 2));
+      
+      let date: Date;
+      
+      // 通知オブジェクトから日付を取得
+      if (notification && notification.trigger) {
+        if (notification.trigger.date) {
+          date = new Date(notification.trigger.date);
+        } else if (notification.trigger.seconds) {
+          // timeIntervalタイプの場合、現在時刻に秒数を加算
+          const now = new Date();
+          date = new Date(now.getTime() + (notification.trigger.seconds * 1000));
+          console.log('Time interval trigger - seconds:', notification.trigger.seconds, 'scheduled time:', date.toLocaleString());
+        } else if (notification.trigger.weekday) {
+          // 曜日ベースのトリガーの場合（現在時刻を使用）
+          date = new Date();
+        } else {
+          console.warn('No valid date found in trigger:', notification.trigger);
+          return '日付不明';
+        }
+      } else {
+        console.warn('No trigger found in notification:', notification);
+        return '日付不明';
+      }
+      
+      // 無効な日付かチェック
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date after parsing:', notification.trigger);
+        return '日付不明';
+      }
+      
+      return date.toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error, 'Notification:', notification);
+      return '日付不明';
+    }
   };
 
   const frequencyOptions = [
@@ -452,7 +489,7 @@ export default function NotificationSettingsScreen() {
                       {notification.content.body}
                     </Text>
                     <Text style={styles.notificationTime}>
-                      {formatNotificationTime(new Date(notification.trigger.date))}
+                      {formatNotificationTime(notification)}
                     </Text>
                   </View>
                 ))
