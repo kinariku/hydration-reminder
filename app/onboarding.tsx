@@ -17,7 +17,7 @@ import { scheduleNextReminder } from '../lib/notifications';
 import { useHydrationStore } from '../stores/hydrationStore';
 
 export default function OnboardingScreen() {
-  const { setUserProfile, setOnboarded } = useHydrationStore();
+  const { setUserProfile, setOnboarded, settings } = useHydrationStore();
   
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
@@ -56,7 +56,14 @@ export default function OnboardingScreen() {
 
       // Schedule notifications
       const goal = calculateDailyGoal(profile);
-      await scheduleNextReminder(wakeTime, sleepTime, goal.targetMl);
+      await scheduleNextReminder({
+        wakeTime,
+        sleepTime,
+        targetMl: goal.targetMl,
+        consumedMl: 0,
+        reminderCount: 8,
+        userSnoozeMin: settings.snoozeMinutes,
+      });
 
       // Force reload to show home screen
       router.replace('/(tabs)');
