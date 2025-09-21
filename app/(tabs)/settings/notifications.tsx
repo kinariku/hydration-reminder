@@ -11,25 +11,75 @@ import {
 } from 'react-native';
 import { CommonHeader } from '../../../components/common-header';
 import { saveUserProfile } from '../../../lib/database';
-import { scheduleReminders } from '../../../lib/notifications';
+import {
+  cancelScheduledReminders,
+  requestNotificationPermission,
+  scheduleReminders,
+} from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
 export default function NotificationSettingsScreen() {
-  const { 
+  const {
     userProfile,
+    dailyGoal,
     setUserProfile,
-    settings, 
-    setSettings, 
+    settings,
+    setSettings,
     personalizedSettings,
     setPersonalizedSettings,
     initializePersonalizedSettings,
     notificationPermission,
     setNotificationPermission,
+    calculateDailyGoal,
   } = useHydrationStore();
 
+  const [isNotificationUpdating, setIsNotificationUpdating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [wakeTime, setWakeTime] = useState(userProfile?.wakeTime || '07:00');
   const [sleepTime, setSleepTime] = useState(userProfile?.sleepTime || '23:00');
+
+  const handleNotificationToggle = async (value: boolean) => {
+    setIsNotificationUpdating(true);
+
+    try {
+      if (value) {
+        const granted = await requestNotificationPermission();
+        if (!granted) {
+          Alert.alert(
+            '通知を有効にできません',
+            '端末の設定で通知を許可してから再度お試しください。'
+          );
+          return;
+        }
+
+        if (!userProfile) {
+          Alert.alert(
+            'プロフィール情報が必要です',
+            'プロフィールを設定してから通知を有効にしてください。'
+          );
+          return;
+        }
+
+        const goal = dailyGoal ?? calculateDailyGoal(userProfile);
+
+        await scheduleReminders(
+          userProfile.wakeTime,
+          userProfile.sleepTime,
+          goal.targetMl
+        );
+
+        setNotificationPermission(true);
+      } else {
+        await cancelScheduledReminders();
+        setNotificationPermission(false);
+      }
+    } catch (error) {
+      console.error('Failed to toggle notifications:', error);
+      Alert.alert('エラー', '通知設定の更新に失敗しました。');
+    } finally {
+      setIsNotificationUpdating(false);
+    }
+  };
 
   const handleSaveTimes = async () => {
     if (!userProfile) return;
@@ -52,10 +102,11 @@ export default function NotificationSettingsScreen() {
 
       await saveUserProfile(updatedProfile);
       setUserProfile(updatedProfile);
-      
+
       // 通知スケジュールを更新
       if (notificationPermission) {
-        await scheduleReminders(wakeTime, sleepTime, 2000); // 仮の目標量
+        const goal = dailyGoal ?? calculateDailyGoal(updatedProfile);
+        await scheduleReminders(wakeTime, sleepTime, goal.targetMl);
       }
 
       Alert.alert('成功', '起床・就寝時刻を更新しました');
@@ -111,7 +162,8 @@ export default function NotificationSettingsScreen() {
             <Text style={styles.settingLabel}>通知を有効にする</Text>
             <Switch
               value={notificationPermission}
-              onValueChange={setNotificationPermission}
+              onValueChange={handleNotificationToggle}
+              disabled={isNotificationUpdating}
             />
           </View>
 
