@@ -8,7 +8,8 @@ const NOTIFICATION_CHANNEL_ID = 'hydration_reminders';
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -38,15 +39,14 @@ export const scheduleReminders = async (
   reminderCount: number = 8
 ) => {
   try {
-    // Check if notifications are supported
-    const isSupported = await Notifications.isAvailableAsync();
-    if (!isSupported) {
-      console.warn('Notifications are not supported on this device');
-      return;
-    }
+    // Check if notifications are supported (remove isAvailableAsync as it doesn't exist)
+    console.log('Scheduling notifications...');
 
     // Cancel existing notifications
     await Notifications.cancelAllScheduledNotificationsAsync();
+    
+    // 通知のキャンセルを確実にするため少し待つ
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Calculate reminder times
     const times = calculateReminderTimes(wakeTime, sleepTime, reminderCount);
@@ -58,6 +58,18 @@ export const scheduleReminders = async (
       const time = times[i];
       const amountPerReminder = Math.round(targetMl / reminderCount);
       
+      // 今日の日付でスケジュール
+      const today = new Date();
+      const [hours, minutes] = time.split(':').map(Number);
+      const scheduledTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);
+      
+      // 過去の時間の場合は翌日に設定
+      if (scheduledTime <= new Date()) {
+        scheduledTime.setDate(scheduledTime.getDate() + 1);
+      }
+      
+      console.log(`Scheduling notification ${i + 1} for ${hours}:${minutes.toString().padStart(2, '0')} (repeats daily)`);
+      
       await Notifications.scheduleNotificationAsync({
         content: {
           title: '💧 水分補給の時間です！',
@@ -66,9 +78,10 @@ export const scheduleReminders = async (
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
         trigger: {
-          hour: parseInt(time.split(':')[0]),
-          minute: parseInt(time.split(':')[1]),
+          hour: hours,
+          minute: minutes,
           repeats: true,
+          channelId: NOTIFICATION_CHANNEL_ID,
         },
       });
     }
@@ -118,4 +131,24 @@ export const registerBackgroundFetch = async () => {
     stopOnTerminate: false,
     startOnBoot: true,
   });
+};
+
+// Test notification function
+export const sendTestNotification = async () => {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '💧 テスト通知',
+        body: '通知機能が正常に動作しています！',
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      },
+      trigger: null, // Send immediately
+    });
+    console.log('Test notification sent');
+    return true;
+  } catch (error) {
+    console.warn('Failed to send test notification:', error);
+    return false;
+  }
 };

@@ -11,7 +11,7 @@ import { initDatabase } from '../lib/database';
 import { useHydrationStore } from '../stores/hydrationStore';
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  initialRouteName: '(tabs)',
 };
 
 export default function RootLayout() {

@@ -20,6 +20,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'ホーム',
+          headerShown: false,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
@@ -27,6 +28,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: '設定',
+          headerShown: false,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}
       />
@@ -34,6 +36,7 @@ export default function TabLayout() {
         name="settings/profile"
         options={{
           href: null, // タブバーに表示しない
+          headerShown: false,
           tabBarStyle: { display: 'none' }, // タブバーを完全に非表示
         }}
       />
@@ -41,6 +44,7 @@ export default function TabLayout() {
         name="settings/notifications"
         options={{
           href: null, // タブバーに表示しない
+          headerShown: false,
           tabBarStyle: { display: 'none' }, // タブバーを完全に非表示
         }}
       />
@@ -48,6 +52,7 @@ export default function TabLayout() {
         name="settings/app"
         options={{
           href: null, // タブバーに表示しない
+          headerShown: false,
           tabBarStyle: { display: 'none' }, // タブバーを完全に非表示
         }}
       />
@@ -55,6 +60,7 @@ export default function TabLayout() {
         name="settings/data"
         options={{
           href: null, // タブバーに表示しない
+          headerShown: false,
           tabBarStyle: { display: 'none' }, // タブバーを完全に非表示
         }}
       />

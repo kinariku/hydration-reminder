@@ -25,7 +25,7 @@ export function CommonHeader({ title, showBackButton = true, onBack, rightElemen
   };
 
   return (
-    <SafeAreaView style={COMMON_HEADER_STYLES.headerContainer}>
+    <SafeAreaView style={COMMON_HEADER_STYLES.headerContainer} edges={['top']}>
       <View style={COMMON_HEADER_STYLES.header}>
         {showBackButton ? (
           <TouchableOpacity 

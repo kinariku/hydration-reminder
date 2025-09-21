@@ -3,9 +3,9 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MainHeader } from '../../components/main-header';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
-import { getLocalDateString } from '../../lib/date';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
-import { requestNotificationPermission } from '../../lib/notifications';
+import { getLocalDateString } from '../../lib/date';
+import { requestNotificationPermission, scheduleReminders } from '../../lib/notifications';
 import { useHydrationStore } from '../../stores/hydrationStore';
 
 export default function HomeScreen() {
@@ -47,7 +47,25 @@ export default function HomeScreen() {
     };
 
     loadTodayIntake();
-  }, []);
+
+    // Schedule notifications if permission is granted and user profile exists
+    const scheduleNotifications = async () => {
+      if (notificationPermission && userProfile && dailyGoal) {
+        try {
+          await scheduleReminders(
+            userProfile.wakeTime,
+            userProfile.sleepTime,
+            dailyGoal.targetMl
+          );
+          console.log('Notifications scheduled successfully');
+        } catch (error) {
+          console.warn('Failed to schedule notifications:', error);
+        }
+      }
+    };
+
+    scheduleNotifications();
+  }, [notificationPermission, userProfile, dailyGoal]);
 
   const handleQuickAdd = async (amount: number) => {
     const log = {

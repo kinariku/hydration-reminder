@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { CommonHeader } from '../../../components/common-header';
 import { saveUserProfile } from '../../../lib/database';
-import { scheduleReminders } from '../../../lib/notifications';
+import { scheduleReminders, sendTestNotification } from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
 export default function NotificationSettingsScreen() {
@@ -55,7 +55,9 @@ export default function NotificationSettingsScreen() {
       
       // 通知スケジュールを更新
       if (notificationPermission) {
-        await scheduleReminders(wakeTime, sleepTime, 2000); // 仮の目標量
+        const dailyGoal = useHydrationStore.getState().dailyGoal;
+        const targetMl = dailyGoal?.targetMl || 2000;
+        await scheduleReminders(wakeTime, sleepTime, targetMl);
       }
 
       Alert.alert('成功', '起床・就寝時刻を更新しました');
@@ -83,6 +85,20 @@ export default function NotificationSettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleTestNotification = async () => {
+    if (!notificationPermission) {
+      Alert.alert('エラー', '通知が有効になっていません');
+      return;
+    }
+
+    const success = await sendTestNotification();
+    if (success) {
+      Alert.alert('成功', 'テスト通知を送信しました');
+    } else {
+      Alert.alert('エラー', 'テスト通知の送信に失敗しました');
+    }
   };
 
   const frequencyOptions = [
@@ -278,6 +294,20 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
 
+            {/* テスト通知ボタン */}
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>通知テスト</Text>
+              <TouchableOpacity
+                style={styles.testButton}
+                onPress={handleTestNotification}
+              >
+                <Text style={styles.testButtonText}>テスト通知を送信</Text>
+              </TouchableOpacity>
+              <Text style={styles.helpText}>
+                通知が正常に動作するかテストできます
+              </Text>
+            </View>
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>静音時間</Text>
               <Text style={styles.timeList}>
@@ -456,6 +486,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#C7C7CC',
   },
   saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  testButton: {
+    backgroundColor: '#34C759',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  testButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',

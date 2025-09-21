@@ -1,10 +1,10 @@
 // ヘッダー関連の定数
 export const HEADER_CONSTANTS = {
-  // ヘッダーコンテンツの高さ
-  CONTENT_HEIGHT: 44,
+  // ヘッダーコンテンツの高さ（パディング含む）
+  CONTENT_HEIGHT: 56,
   // パディング
   PADDING_HORIZONTAL: 16,
-  PADDING_VERTICAL: 8,
+  PADDING_VERTICAL: 12,
   // ボタンサイズ
   BUTTON_SIZE: 40,
   BUTTON_RADIUS: 20,

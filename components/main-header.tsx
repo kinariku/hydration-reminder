@@ -10,7 +10,7 @@ interface MainHeaderProps {
 
 export function MainHeader({ title, rightElement }: MainHeaderProps) {
   return (
-    <SafeAreaView style={COMMON_HEADER_STYLES.headerContainer}>
+    <SafeAreaView style={COMMON_HEADER_STYLES.headerContainer} edges={['top']}>
       <View style={COMMON_HEADER_STYLES.header}>
         <View style={COMMON_HEADER_STYLES.headerLeft} />
         
