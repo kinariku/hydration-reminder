@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveUserProfile } from '../lib/database';
+import { buildUserProfile } from '../lib/profile';
 import { useHydrationStore } from '../stores/hydrationStore';
 
 export default function OnboardingScreen() {
@@ -24,20 +25,12 @@ export default function OnboardingScreen() {
 
   // 自動保存機能
   const autoSave = useCallback(async () => {
-    if (!weight || isNaN(Number(weight)) || Number(weight) <= 0) return;
+    const profile = buildUserProfile(weight, height);
+    if (!profile) {
+      return;
+    }
 
     try {
-      const profile = {
-        id: Date.now().toString(),
-        weightKg: Number(weight),
-        sex: 'male', // デフォルト値
-        heightCm: height ? Number(height) : undefined,
-        activityLevel: 'medium', // デフォルト値
-        wakeTime: '07:00', // デフォルト値
-        sleepTime: '23:00', // デフォルト値
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
-
       await saveUserProfile(profile);
       setUserProfile(profile);
       console.log('Profile auto-saved during onboarding');
@@ -58,7 +51,8 @@ export default function OnboardingScreen() {
   }, [weight, height, autoSave]);
 
   const handleComplete = async () => {
-    if (!weight || isNaN(Number(weight)) || Number(weight) <= 0) {
+    const profile = buildUserProfile(weight, height);
+    if (!profile) {
       Alert.alert('エラー', '体重を正しく入力してください');
       return;
     }
@@ -66,20 +60,10 @@ export default function OnboardingScreen() {
     setIsLoading(true);
 
     try {
-      const profile = {
-        id: Date.now().toString(),
-        weightKg: Number(weight),
-        sex: 'male', // デフォルト値
-        heightCm: height ? Number(height) : undefined,
-        activityLevel: 'medium', // デフォルト値
-        wakeTime: '07:00', // デフォルト値
-        sleepTime: '23:00', // デフォルト値
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
 
       // Save to database
       await saveUserProfile(profile);
-      
+
       // Update store
       setUserProfile(profile);
       setOnboarded(true);
