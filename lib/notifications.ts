@@ -1,5 +1,6 @@
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as Notifications from 'expo-notifications';
+import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 
@@ -122,6 +123,7 @@ export const scheduleNextReminder = async (
           sound: true,
         },
         trigger: {
+          type: SchedulableTriggerInputTypes.DATE,
           date: scheduledTime,
         },
       });
@@ -209,6 +211,7 @@ export const scheduleReminders = async (
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
         trigger: {
+          type: SchedulableTriggerInputTypes.DATE,
           date: scheduledTime,
           channelId: NOTIFICATION_CHANNEL_ID,
         },
