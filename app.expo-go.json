@@ -7,15 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "stayhydrated",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "bundleIdentifier": "app.kinari.stayhydrated",
       "supportsTablet": true,
       "buildNumber": "9",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "fetch"
-        ],
         "NSUserNotificationsUsageDescription": "水分補給のリマインダーを送信するために通知を使用します。",
         "NSCameraUsageDescription": "プロフィール写真を設定するためにカメラを使用します。"
       }
@@ -31,9 +28,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "app.kinari.stayhydrated",
       "permissions": [
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.WAKE_LOCK"
+        "android.permission.VIBRATE"
       ]
     },
     "web": {
@@ -59,7 +54,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     },
     "extra": {
       "router": {},

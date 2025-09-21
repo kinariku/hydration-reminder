@@ -1,10 +1,9 @@
-import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
-    Platform,
-    ScrollView,
+    Keyboard,
     StyleSheet,
     Text,
     TextInput,
@@ -13,19 +12,50 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveUserProfile } from '../lib/database';
-import { scheduleNextReminder } from '../lib/notifications';
 import { useHydrationStore } from '../stores/hydrationStore';
 
 export default function OnboardingScreen() {
-  const { setUserProfile, setOnboarded, settings } = useHydrationStore();
+  console.log('OnboardingScreen: Component rendered');
+  const { setUserProfile, setOnboarded } = useHydrationStore();
   
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
-  const [sex, setSex] = useState<'male' | 'female' | 'other'>('male');
-  const [activityLevel, setActivityLevel] = useState<'low' | 'medium' | 'high'>('medium');
-  const [wakeTime, setWakeTime] = useState('07:00');
-  const [sleepTime, setSleepTime] = useState('23:00');
   const [isLoading, setIsLoading] = useState(false);
+
+  // 自動保存機能
+  const autoSave = useCallback(async () => {
+    if (!weight || isNaN(Number(weight)) || Number(weight) <= 0) return;
+
+    try {
+      const profile = {
+        id: Date.now().toString(),
+        weightKg: Number(weight),
+        sex: 'male', // デフォルト値
+        heightCm: height ? Number(height) : undefined,
+        activityLevel: 'medium', // デフォルト値
+        wakeTime: '07:00', // デフォルト値
+        sleepTime: '23:00', // デフォルト値
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+
+      await saveUserProfile(profile);
+      setUserProfile(profile);
+      console.log('Profile auto-saved during onboarding');
+    } catch (error) {
+      console.error('Auto-save failed during onboarding:', error);
+    }
+  }, [weight, height, setUserProfile]);
+
+  // デバウンス付き自動保存
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (weight && height) {
+        autoSave();
+      }
+    }, 1000); // 1秒後に自動保存
+
+    return () => clearTimeout(timeoutId);
+  }, [weight, height, autoSave]);
 
   const handleComplete = async () => {
     if (!weight || isNaN(Number(weight)) || Number(weight) <= 0) {
@@ -39,11 +69,11 @@ export default function OnboardingScreen() {
       const profile = {
         id: Date.now().toString(),
         weightKg: Number(weight),
-        sex,
+        sex: 'male', // デフォルト値
         heightCm: height ? Number(height) : undefined,
-        activityLevel,
-        wakeTime,
-        sleepTime,
+        activityLevel: 'medium', // デフォルト値
+        wakeTime: '07:00', // デフォルト値
+        sleepTime: '23:00', // デフォルト値
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
 
@@ -54,18 +84,7 @@ export default function OnboardingScreen() {
       setUserProfile(profile);
       setOnboarded(true);
 
-      // Schedule notifications
-      const goal = calculateDailyGoal(profile);
-      await scheduleNextReminder({
-        wakeTime,
-        sleepTime,
-        targetMl: goal.targetMl,
-        consumedMl: 0,
-        reminderCount: 8,
-        userSnoozeMin: settings.snoozeMinutes,
-      });
-
-      // Force reload to show home screen
+      // ホーム画面に移動
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Failed to save profile:', error);
@@ -75,38 +94,28 @@ export default function OnboardingScreen() {
     }
   };
 
-  const calculateDailyGoal = (profile: any) => {
-    const baseAmount = profile.weightKg * 35;
-    let activityBonus = 0;
-    
-    switch (profile.activityLevel) {
-      case 'low':
-        activityBonus = 0;
-        break;
-      case 'medium':
-        activityBonus = 500;
-        break;
-      case 'high':
-        activityBonus = 1000;
-        break;
+  const handleResetStorage = async () => {
+    try {
+      console.log('Resetting storage...');
+      await AsyncStorage.clear();
+      console.log('Storage cleared successfully');
+      Alert.alert('成功', 'ストレージがリセットされました。アプリを再起動してください。');
+    } catch (error) {
+      console.error('Failed to reset storage:', error);
+      Alert.alert('エラー', 'ストレージのリセットに失敗しました');
     }
-
-    const totalAmount = baseAmount + activityBonus;
-    const clampedAmount = Math.max(1200, Math.min(5000, totalAmount));
-
-    return {
-      targetMl: clampedAmount,
-    };
   };
-
-  const previewGoal = calculateDailyGoal({
-    weightKg: Number(weight) || 0,
-    activityLevel,
-  });
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <TouchableOpacity 
+        style={styles.content} 
+        activeOpacity={1}
+        onPress={() => {
+          // キーボードを閉じる
+          Keyboard.dismiss();
+        }}
+      >
         <Text style={styles.title}>プロフィール設定</Text>
         <Text style={styles.subtitle}>
           あなたに最適な水分補給目標を計算します
@@ -121,6 +130,8 @@ export default function OnboardingScreen() {
               onChangeText={setWeight}
               placeholder="例: 65"
               keyboardType="numeric"
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
           </View>
 
@@ -132,85 +143,32 @@ export default function OnboardingScreen() {
               onChangeText={setHeight}
               placeholder="例: 170"
               keyboardType="numeric"
+              returnKeyType="done"
+              blurOnSubmit={true}
             />
           </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>性別</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={sex}
-                onValueChange={setSex}
-                style={styles.picker}
-                itemStyle={styles.pickerItem}
-              >
-                <Picker.Item label="男性" value="male" />
-                <Picker.Item label="女性" value="female" />
-                <Picker.Item label="その他" value="other" />
-              </Picker>
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>活動レベル</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={activityLevel}
-                onValueChange={setActivityLevel}
-                style={styles.picker}
-                itemStyle={styles.pickerItem}
-              >
-                <Picker.Item label="低い (デスクワーク中心)" value="low" />
-                <Picker.Item label="普通 (適度な運動)" value="medium" />
-                <Picker.Item label="高い (激しい運動)" value="high" />
-              </Picker>
-            </View>
-          </View>
-
-          <View style={styles.timeRow}>
-            <View style={styles.timeInput}>
-              <Text style={styles.label}>起床時刻</Text>
-              <TextInput
-                style={styles.input}
-                value={wakeTime}
-                onChangeText={setWakeTime}
-                placeholder="07:00"
-              />
-            </View>
-            <View style={styles.timeInput}>
-              <Text style={styles.label}>就寝時刻</Text>
-              <TextInput
-                style={styles.input}
-                value={sleepTime}
-                onChangeText={setSleepTime}
-                placeholder="23:00"
-              />
-            </View>
-          </View>
-
-          {weight && (
-            <View style={styles.preview}>
-              <Text style={styles.previewTitle}>目標摂取量</Text>
-              <Text style={styles.previewAmount}>
-                {previewGoal.targetMl}ml / 日
-              </Text>
-              <Text style={styles.previewDescription}>
-                体重 {weight}kg × 35ml + 活動補正
-              </Text>
-            </View>
-          )}
         </View>
 
         <TouchableOpacity
           style={[styles.button, isLoading && styles.buttonDisabled]}
           onPress={handleComplete}
-          disabled={isLoading || !weight}
+          disabled={isLoading}
         >
           <Text style={styles.buttonText}>
-            {isLoading ? '設定中...' : '設定完了'}
+            {isLoading ? '設定中...' : '完了'}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+
+        {/* デバッグ用リセットボタン */}
+        <TouchableOpacity
+          style={styles.resetButton}
+          onPress={handleResetStorage}
+        >
+          <Text style={styles.resetButtonText}>
+            ストレージリセット（デバッグ用）
+          </Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -221,88 +179,43 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   content: {
+    flex: 1,
     padding: 20,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#1C1C1E',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: '#8E8E93',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
+    lineHeight: 22,
   },
   form: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 30,
+    marginBottom: 40,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
+    color: '#1C1C1E',
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-  },
-  picker: {
-    height: Platform.OS === 'ios' ? 200 : 50,
-    backgroundColor: '#fff',
-  },
-  pickerItem: {
-    fontSize: 16,
-    color: '#000',
-  },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  timeInput: {
-    flex: 1,
-    marginRight: 10,
-  },
-  preview: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 16,
-    marginTop: 10,
-  },
-  previewTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1976D2',
-    marginBottom: 4,
-  },
-  previewAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1976D2',
-    marginBottom: 4,
-  },
-  previewDescription: {
-    fontSize: 14,
-    color: '#1976D2',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
   },
   button: {
     backgroundColor: '#007AFF',
@@ -311,11 +224,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#E5E5EA',
+    backgroundColor: '#8E8E93',
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  resetButton: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

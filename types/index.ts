@@ -35,6 +35,7 @@ export interface Settings {
   units: 'ml' | 'oz';
   presetMl: number[];
   snoozeMinutes: number;
+  notificationFrequency: 'low' | 'medium' | 'high';
   quietHours: { start: string; end: string }[];
   analyticsOptIn: boolean;
   language: 'ja' | 'en';

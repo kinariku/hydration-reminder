@@ -20,8 +20,6 @@ export default function SettingsScreen() {
     userProfile, 
     settings, 
     setSettings, 
-    personalizedSettings,
-    setPersonalizedSettings,
     dailyGoal,
     notificationPermission,
     setNotificationPermission,
@@ -179,15 +177,13 @@ export default function SettingsScreen() {
                 <Text style={styles.infoValue}>{settings.snoozeMinutes}分</Text>
               </View>
 
-              {personalizedSettings && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>通知頻度</Text>
-                  <Text style={styles.infoValue}>
-                    {personalizedSettings.notificationPattern.frequency === 'high' ? '高' :
-                     personalizedSettings.notificationPattern.frequency === 'medium' ? '中' : '低'}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>通知頻度</Text>
+                <Text style={styles.infoValue}>
+                  {settings.notificationFrequency === 'high' ? '高' :
+                   settings.notificationFrequency === 'medium' ? '中' : '低'}
+                </Text>
+              </View>
             </View>
           )}
         </View>
@@ -272,14 +268,12 @@ export default function SettingsScreen() {
               <Text style={styles.infoLabel}>プラットフォーム</Text>
               <Text style={styles.infoValue}>React Native + Expo</Text>
             </View>
-            {personalizedSettings && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>最終更新</Text>
-                <Text style={styles.infoValue}>
-                  {new Date(personalizedSettings.learningData.lastUpdated).toLocaleDateString('ja-JP')}
-                </Text>
-              </View>
-            )}
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>最終更新</Text>
+              <Text style={styles.infoValue}>
+                {new Date().toLocaleDateString('ja-JP')}
+              </Text>
+            </View>
           </View>
         </View>
 

@@ -6,12 +6,11 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initDatabase } from '../lib/database';
 import { useHydrationStore } from '../stores/hydrationStore';
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: 'index',
 };
 
 export default function RootLayout() {
@@ -21,38 +20,16 @@ export default function RootLayout() {
   const [hasOnboarded, setHasOnboarded] = useState(false);
 
   useEffect(() => {
-    // Initialize database and load existing profile
+    // Only initialize database here, navigation is handled by index.tsx
     const initializeApp = async () => {
       try {
-        console.log('Initializing app...');
+        console.log('RootLayout: Initializing database...');
         initDatabase();
-        
-        // Check AsyncStorage directly for onboarding status
-        const storedData = await AsyncStorage.getItem('hydration-storage');
-        console.log('Stored data:', storedData);
-        
-        if (storedData) {
-          const parsedData = JSON.parse(storedData);
-          console.log('Parsed data:', parsedData);
-          
-          if (parsedData.state?.userProfile) {
-            console.log('Found user profile in storage, setting up store');
-            setUserProfile(parsedData.state.userProfile);
-            setOnboarded(true);
-            setHasOnboarded(true);
-          } else {
-            console.log('No user profile in storage, will show onboarding');
-            setHasOnboarded(false);
-          }
-        } else {
-          console.log('No stored data found, will show onboarding');
-          setHasOnboarded(false);
-        }
+        console.log('RootLayout: Database initialized');
       } catch (error) {
-        console.error('Failed to initialize app:', error);
-        setHasOnboarded(false);
+        console.error('RootLayout: Failed to initialize database:', error);
       } finally {
-        console.log('App initialization complete');
+        console.log('RootLayout: Initialization complete');
         setIsLoading(false);
       }
     };
@@ -72,21 +49,17 @@ export default function RootLayout() {
     );
   }
 
-  // Determine initial route based on onboarding status
-  const shouldShowOnboarding = !hasOnboarded;
+  console.log('Render state:', { isLoading, hasOnboarded });
+  console.log('RootLayout: Rendering');
   
-  console.log('Render state:', { isLoading, hasOnboarded, shouldShowOnboarding });
-
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          {shouldShowOnboarding ? (
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          ) : (
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          )}
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
-        </Stack>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
+      </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
   );

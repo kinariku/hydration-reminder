@@ -1,21 +1,21 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, AppState, ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert, AppState, ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { CommonHeader } from '../../../components/common-header';
 import { NotificationStatusCard } from '../../../components/ui/NotificationStatusCard';
 import { TestButton } from '../../../components/ui/TestButton';
 import { saveUserProfile } from '../../../lib/database';
 import {
-  checkNotificationStatus,
-  getScheduledNotifications,
-  openNotificationSettings,
-  sendTestNotification
+    checkNotificationStatus,
+    getScheduledNotifications,
+    openNotificationSettings,
+    sendTestNotification
 } from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
@@ -26,8 +26,6 @@ export default function NotificationSettingsScreen() {
     setUserProfile,
     settings,
     setSettings,
-    personalizedSettings,
-    setPersonalizedSettings,
     notificationPermission,
     setNotificationPermission,
     calculateDailyGoal,
@@ -80,11 +78,12 @@ export default function NotificationSettingsScreen() {
   
   // 設定変更の追跡
   const [tempNotificationFrequency, setTempNotificationFrequency] = useState(
-    personalizedSettings?.notificationPattern?.frequency || 'medium'
+    settings?.notificationFrequency || 'medium'
   );
   const [tempSnoozeMinutes, setTempSnoozeMinutes] = useState(
-    settings?.snoozeMinutes || 10
+    settings?.snoozeMinutes || 15
   );
+
   
   // TextInputのref
   const wakeTimeRef = useRef<TextInput>(null);
@@ -104,8 +103,8 @@ export default function NotificationSettingsScreen() {
   // 変更があるかチェック
   const hasChanges = () => {
     const timeChanged = wakeTime !== userProfile?.wakeTime || sleepTime !== userProfile?.sleepTime;
-    const frequencyChanged = tempNotificationFrequency !== (personalizedSettings?.notificationPattern?.frequency || 'medium');
-    const snoozeChanged = tempSnoozeMinutes !== (settings?.snoozeMinutes || 10);
+    const frequencyChanged = tempNotificationFrequency !== (settings?.notificationFrequency || 'medium');
+    const snoozeChanged = tempSnoozeMinutes !== (settings?.snoozeMinutes || 15);
     return timeChanged || frequencyChanged || snoozeChanged;
   };
 
@@ -136,27 +135,16 @@ export default function NotificationSettingsScreen() {
   // 自動保存関数（設定）
   const autoSaveSettings = useCallback(async () => {
     try {
-      // 通知頻度の保存
-      if (personalizedSettings) {
-        const updatedPersonalizedSettings = {
-          ...personalizedSettings,
-          notificationPattern: {
-            ...personalizedSettings.notificationPattern,
-            frequency: tempNotificationFrequency,
-          },
-        };
-        setPersonalizedSettings(updatedPersonalizedSettings);
-      }
-
-      // スヌーズ時間の保存
+      // 設定の保存
       setSettings({
         ...settings,
+        notificationFrequency: tempNotificationFrequency as 'low' | 'medium' | 'high',
         snoozeMinutes: tempSnoozeMinutes,
       });
     } catch (error) {
       console.error('Auto-save settings failed:', error);
     }
-  }, [personalizedSettings, tempNotificationFrequency, tempSnoozeMinutes, setPersonalizedSettings, setSettings, settings]);
+  }, [tempNotificationFrequency, tempSnoozeMinutes, setSettings, settings]);
 
   // デバウンス付き自動保存（時刻）
   useEffect(() => {
@@ -217,6 +205,7 @@ export default function NotificationSettingsScreen() {
       setWakeTime(userProfile.wakeTime);
       setSleepTime(userProfile.sleepTime);
     }
+    
     // 通知状態をチェック
     checkNotificationStatusOnLoad();
   }, [userProfile]);
@@ -414,41 +403,35 @@ export default function NotificationSettingsScreen() {
             
           </View>
 
-          {/* 通知頻度を基本設定セクションに移動 */}
-          {personalizedSettings && (
-            <View style={[styles.settingItem, !notificationStatus.isEnabled && styles.settingItemDisabled]}>
-              <Text style={[styles.settingLabel, !notificationStatus.isEnabled && styles.settingLabelDisabled]}>通知頻度</Text>
-              <View style={styles.optionContainer}>
-                {frequencyOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.optionButton,
-                      tempNotificationFrequency === option.value && styles.optionButtonSelected,
-                      !notificationStatus.isEnabled && styles.optionButtonDisabled
-                    ]}
-                    onPress={() => notificationStatus.isEnabled && setTempNotificationFrequency(option.value as 'low' | 'medium' | 'high')}
-                    disabled={!notificationStatus.isEnabled}
-                  >
-                    <Text style={[
-                      styles.optionText,
-                      tempNotificationFrequency === option.value && styles.optionTextSelected,
-                      !notificationStatus.isEnabled && styles.optionTextDisabled
-                    ]}>
-                      {option.label}
-                    </Text>
-                    <Text style={[
-                      styles.optionDescription,
-                      tempNotificationFrequency === option.value && styles.optionDescriptionSelected,
-                      !notificationStatus.isEnabled && styles.optionDescriptionDisabled
-                    ]}>
-                      {option.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+          {/* 通知頻度設定 */}
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>通知頻度</Text>
+            <View style={styles.optionContainer}>
+              {frequencyOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.optionButton,
+                    tempNotificationFrequency === option.value && styles.optionButtonSelected
+                  ]}
+                  onPress={() => setTempNotificationFrequency(option.value as 'low' | 'medium' | 'high')}
+                >
+                  <Text style={[
+                    styles.optionText,
+                    tempNotificationFrequency === option.value && styles.optionTextSelected
+                  ]}>
+                    {option.label}
+                  </Text>
+                  <Text style={[
+                    styles.optionDescription,
+                    tempNotificationFrequency === option.value && styles.optionDescriptionSelected
+                  ]}>
+                    {option.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
+          </View>
 
           <View style={[styles.settingItem, !notificationStatus.isEnabled && styles.settingItemDisabled]}>
             <Text style={[styles.settingLabel, !notificationStatus.isEnabled && styles.settingLabelDisabled]}>スヌーズ時間</Text>
@@ -491,15 +474,15 @@ export default function NotificationSettingsScreen() {
           </View>
 
           {/* スケジュール通知一覧ボタン */}
-          <View style={[styles.settingItem, !notificationStatus.isEnabled && styles.settingItemDisabled]}>
-            <Text style={[styles.settingLabel, !notificationStatus.isEnabled && styles.settingLabelDisabled]}>スケジュール通知一覧</Text>
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>スケジュール通知一覧</Text>
             <TestButton
               onPress={handleViewScheduledNotifications}
-              disabled={!notificationStatus.isEnabled}
+              disabled={false}
               title="通知一覧を表示"
               description="現在スケジュールされている通知を確認できます"
             />
-            <Text style={[styles.helpText, !notificationStatus.isEnabled && styles.helpTextDisabled]}>
+            <Text style={styles.helpText}>
               現在スケジュールされている通知を確認できます
             </Text>
           </View>
