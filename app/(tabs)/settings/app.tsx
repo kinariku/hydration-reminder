@@ -24,6 +24,8 @@ const PRESET_OPTIONS = [
 export default function AppSettingsScreen() {
   const { settings, setSettings } = useHydrationStore();
   const [selectedPresets, setSelectedPresets] = useState<Set<string>>(new Set());
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // 現在の設定を反映
   useEffect(() => {
@@ -37,6 +39,40 @@ export default function AppSettingsScreen() {
     setSelectedPresets(current);
   }, [settings.presetMl]);
 
+  // 変更検知
+  useEffect(() => {
+    const currentPresets = Array.from(selectedPresets).map(id => {
+      const option = PRESET_OPTIONS.find(opt => opt.id === id);
+      return option?.value || 0;
+    }).filter(value => value > 0).sort((a, b) => a - b);
+    
+    const hasPresetChanges = JSON.stringify(currentPresets) !== JSON.stringify(settings.presetMl);
+    setHasChanges(hasPresetChanges);
+  }, [selectedPresets, settings.presetMl]);
+
+  // 保存関数
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      const newPresets = Array.from(selectedPresets).map(id => {
+        const option = PRESET_OPTIONS.find(opt => opt.id === id);
+        return option?.value || 0;
+      }).filter(value => value > 0).sort((a, b) => a - b);
+
+      setSettings({
+        ...settings,
+        presetMl: newPresets,
+      });
+
+      setHasChanges(false);
+      console.log('App settings saved successfully');
+    } catch (error) {
+      console.error('Save failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // プリセット選択
   const togglePreset = (presetId: string) => {
     const newSelected = new Set(selectedPresets);
@@ -46,14 +82,6 @@ export default function AppSettingsScreen() {
       newSelected.add(presetId);
     }
     setSelectedPresets(newSelected);
-    
-    // 自動保存
-    const values = Array.from(newSelected)
-      .map(id => PRESET_OPTIONS.find(opt => opt.id === id)?.value)
-      .filter(val => val !== undefined)
-      .sort((a, b) => a - b);
-    
-    setSettings({ presetMl: values });
   };
 
   // 単位変更
@@ -174,6 +202,25 @@ export default function AppSettingsScreen() {
               />
             </View>
           </View>
+        </View>
+
+        {/* 保存ボタン */}
+        <View style={styles.saveButtonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              !hasChanges && styles.saveButtonDisabled
+            ]}
+            onPress={handleSave}
+            disabled={!hasChanges || isLoading}
+          >
+            <Text style={[
+              styles.saveButtonText,
+              !hasChanges && styles.saveButtonTextDisabled
+            ]}>
+              {isLoading ? '保存中...' : '保存'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -324,5 +371,27 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     textAlign: 'center',
     fontWeight: '500',
+  },
+  saveButtonContainer: {
+    marginTop: 20,
+    paddingBottom: 32,
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#E5E5EA',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButtonTextDisabled: {
+    color: '#8E8E93',
   },
 });

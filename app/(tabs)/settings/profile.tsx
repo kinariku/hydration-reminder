@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -21,15 +21,32 @@ export default function ProfileSettingsScreen() {
   const [wakeTime, setWakeTime] = useState(userProfile?.wakeTime || '07:00');
   const [sleepTime, setSleepTime] = useState(userProfile?.sleepTime || '23:00');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  // 自動保存関数
-  const autoSave = useCallback(async () => {
+  // 変更検知
+  useEffect(() => {
+    if (!userProfile) return;
+    
+    const hasProfileChanges = 
+      weight !== userProfile.weightKg?.toString() ||
+      height !== userProfile.heightCm?.toString() ||
+      sex !== userProfile.sex ||
+      activityLevel !== userProfile.activityLevel ||
+      wakeTime !== userProfile.wakeTime ||
+      sleepTime !== userProfile.sleepTime;
+    
+    setHasChanges(hasProfileChanges);
+  }, [weight, height, sex, activityLevel, wakeTime, sleepTime, userProfile]);
+
+  // 保存関数
+  const handleSave = async () => {
     if (!userProfile || !weight || isNaN(Number(weight)) || Number(weight) <= 0) return;
 
     // 時刻のバリデーション
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (!timeRegex.test(wakeTime) || !timeRegex.test(sleepTime)) return;
 
+    setIsLoading(true);
     try {
       const updatedProfile = {
         ...userProfile,
@@ -43,23 +60,14 @@ export default function ProfileSettingsScreen() {
 
       await saveUserProfile(updatedProfile);
       setUserProfile(updatedProfile);
-
-      // 通知の再スケジュールは削除（ボタンを押した時のみ通知を登録する仕様に変更）
+      setHasChanges(false);
+      console.log('Profile saved successfully');
     } catch (error) {
-      console.error('Auto-save failed:', error);
+      console.error('Save failed:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [userProfile, weight, height, sex, activityLevel, wakeTime, sleepTime, setUserProfile]);
-
-  // デバウンス付き自動保存
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (weight && height && userProfile) {
-        autoSave();
-      }
-    }, 1000); // 1秒後に自動保存
-
-    return () => clearTimeout(timeoutId);
-  }, [weight, height, sex, activityLevel, wakeTime, sleepTime, autoSave]);
+  };
 
 
 
@@ -170,7 +178,24 @@ export default function ProfileSettingsScreen() {
           </View>
         </View>
 
-
+        {/* 保存ボタン */}
+        <View style={styles.saveButtonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              !hasChanges && styles.saveButtonDisabled
+            ]}
+            onPress={handleSave}
+            disabled={!hasChanges || isLoading}
+          >
+            <Text style={[
+              styles.saveButtonText,
+              !hasChanges && styles.saveButtonTextDisabled
+            ]}>
+              {isLoading ? '保存中...' : '保存'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
       </ScrollView>
     </View>
@@ -280,5 +305,26 @@ const styles = StyleSheet.create({
   },
   activityDescriptionSelected: {
     color: '#007AFF',
+  },
+  saveButtonContainer: {
+    marginTop: 20,
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#E5E5EA',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButtonTextDisabled: {
+    color: '#8E8E93',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert, AppState, ScrollView,
     StyleSheet,
@@ -36,6 +36,7 @@ export default function NotificationSettingsScreen() {
   const [wakeTime, setWakeTime] = useState(userProfile?.wakeTime || '07:00');
   const [sleepTime, setSleepTime] = useState(userProfile?.sleepTime || '23:00');
   const [scheduledNotifications, setScheduledNotifications] = useState<any[]>([]);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // 時刻フォーマット関数
   const formatTimeInput = (text: string) => {
@@ -100,76 +101,49 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  // 変更があるかチェック
-  const hasChanges = () => {
+  // 変更検知
+  useEffect(() => {
     const timeChanged = wakeTime !== userProfile?.wakeTime || sleepTime !== userProfile?.sleepTime;
     const frequencyChanged = tempNotificationFrequency !== (settings?.notificationFrequency || 'medium');
     const snoozeChanged = tempSnoozeMinutes !== (settings?.snoozeMinutes || 15);
-    return timeChanged || frequencyChanged || snoozeChanged;
-  };
+    setHasChanges(timeChanged || frequencyChanged || snoozeChanged);
+  }, [wakeTime, sleepTime, tempNotificationFrequency, tempSnoozeMinutes, userProfile, settings]);
 
-  // 自動保存関数（時刻）
-  const autoSaveTimes = useCallback(async () => {
+  // 保存関数
+  const handleSave = async () => {
     if (!userProfile) return;
 
     // 時刻のバリデーション
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (!timeRegex.test(wakeTime) || !timeRegex.test(sleepTime)) return;
 
+    setIsLoading(true);
     try {
+      // プロフィールの更新
       const updatedProfile = {
         ...userProfile,
         wakeTime,
         sleepTime,
       };
-
       await saveUserProfile(updatedProfile);
       setUserProfile(updatedProfile);
 
-      // 通知の再スケジュールは削除（ボタンを押した時のみ通知を登録する仕様に変更）
-    } catch (error) {
-      console.error('Auto-save times failed:', error);
-    }
-  }, [userProfile, wakeTime, sleepTime, setUserProfile, notificationPermission, dailyGoal, calculateDailyGoal]);
-
-  // 自動保存関数（設定）
-  const autoSaveSettings = useCallback(async () => {
-    try {
-      // 設定の保存
+      // 設定の更新
       setSettings({
         ...settings,
         notificationFrequency: tempNotificationFrequency as 'low' | 'medium' | 'high',
         snoozeMinutes: tempSnoozeMinutes,
       });
+
+      setHasChanges(false);
+      console.log('Notification settings saved successfully');
     } catch (error) {
-      console.error('Auto-save settings failed:', error);
+      console.error('Save failed:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [tempNotificationFrequency, tempSnoozeMinutes, setSettings, settings]);
-
-  // デバウンス付き自動保存（時刻）
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (userProfile) {
-        autoSaveTimes();
-      }
-    }, 1000); // 1秒後に自動保存
-
-    return () => clearTimeout(timeoutId);
-  }, [wakeTime, sleepTime, autoSaveTimes]);
-
-  // デバウンス付き自動保存（設定）
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      autoSaveSettings();
-    }, 1000); // 1秒後に自動保存
-
-    return () => clearTimeout(timeoutId);
-  }, [tempNotificationFrequency, tempSnoozeMinutes, autoSaveSettings]);
-
-  // 時刻のみの変更チェック
-  const hasTimeChanges = () => {
-    return wakeTime !== userProfile?.wakeTime || sleepTime !== userProfile?.sleepTime;
   };
+
 
   // 時刻のバリデーション
   const isValidTime = (time: string) => {
@@ -208,7 +182,7 @@ export default function NotificationSettingsScreen() {
     
     // 通知状態をチェック
     checkNotificationStatusOnLoad();
-  }, [userProfile]);
+  }, []); // 初回マウント時のみ実行
 
   // アプリがフォアグラウンドに戻った時に通知状態を再チェック
   useEffect(() => {
@@ -488,6 +462,23 @@ export default function NotificationSettingsScreen() {
           </View>
 
           {/* 保存ボタン */}
+          <View style={styles.saveButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                !hasChanges && styles.saveButtonDisabled
+              ]}
+              onPress={handleSave}
+              disabled={!hasChanges || isLoading}
+            >
+              <Text style={[
+                styles.saveButtonText,
+                !hasChanges && styles.saveButtonTextDisabled
+              ]}>
+                {isLoading ? '保存中...' : '保存'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
       </ScrollView>
@@ -1026,6 +1017,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8E93',
     lineHeight: 20,
+  },
+  saveButtonContainer: {
+    marginTop: 20,
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#E5E5EA',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButtonTextDisabled: {
+    color: '#8E8E93',
   },
 });
 

@@ -18,6 +18,20 @@ const SNOOZE_CONFIG = {
   maxIntervalMinutes: 30,
 };
 
+// 通知頻度に基づくスヌーズ設定
+const getSnoozeConfigByFrequency = (frequency: 'low' | 'medium' | 'high') => {
+  switch (frequency) {
+    case 'low':
+      return { maxSnoozes: 3, intervalMinutes: 15 };
+    case 'medium':
+      return { maxSnoozes: 5, intervalMinutes: 10 };
+    case 'high':
+      return { maxSnoozes: 7, intervalMinutes: 8 };
+    default:
+      return { maxSnoozes: 5, intervalMinutes: 10 };
+  }
+};
+
 const SNOOZE_NOTIFICATION_CATEGORY = 'hydration_snooze';
 const SNOOZE_NOTIFICATION_TYPES = new Set<string>(['initial', 'snooze']);
 
@@ -26,6 +40,7 @@ export interface SnoozeOptions {
   suggestMl: number;
   intervalMinutes?: number;
   maxSnoozes?: number;
+  frequency?: 'low' | 'medium' | 'high';
 }
 
 export interface SnoozeResult {
@@ -47,11 +62,14 @@ export const scheduleSnoozeReminders = async (
     await cancelSnoozeReminders();
     await waitFor(500);
 
+    // 通知頻度に基づく設定を取得
+    const frequencyConfig = getSnoozeConfigByFrequency(options.frequency || 'medium');
+    
     const {
       baseTime,
       suggestMl,
-      intervalMinutes = SNOOZE_CONFIG.intervalMinutes,
-      maxSnoozes = SNOOZE_CONFIG.maxSnoozes,
+      intervalMinutes = frequencyConfig.intervalMinutes,
+      maxSnoozes = frequencyConfig.maxSnoozes,
     } = options;
 
     const actualInterval = Math.min(intervalMinutes, SNOOZE_CONFIG.maxIntervalMinutes);
@@ -62,6 +80,9 @@ export const scheduleSnoozeReminders = async (
     const sequenceId = `snooze:${baseTime.getTime()}`;
     const baseTimeIso = baseTime.toISOString();
 
+    // 最初のスヌーズ通知はメイン通知の5分後に登録
+    const firstSnoozeTime = new Date(baseTime.getTime() + 5 * 60 * 1000);
+    
     await Notifications.scheduleNotificationAsync({
       content: {
         title: '💧 水分補給リマインダー',
@@ -78,13 +99,14 @@ export const scheduleSnoozeReminders = async (
       },
       trigger: {
         type: SchedulableTriggerInputTypes.DATE,
-        date: baseTime,
+        date: firstSnoozeTime,
       },
     });
     scheduledCount++;
 
     for (let i = 0; i < totalNotifications - 1; i++) {
-      const snoozeTime = new Date(baseTime.getTime() + (i + 1) * actualInterval * 60000);
+      // 最初のスヌーズ通知が5分後なので、2番目以降は5分 + 間隔 * (i+1) 分後
+      const snoozeTime = new Date(baseTime.getTime() + (5 + (i + 1) * actualInterval) * 60000);
       const message = SNOOZE_MESSAGES[i] || SNOOZE_MESSAGES[SNOOZE_MESSAGES.length - 1];
 
       await Notifications.scheduleNotificationAsync({

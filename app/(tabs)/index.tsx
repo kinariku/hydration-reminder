@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MainHeader } from '../../components/main-header';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
 import { getLocalDateString } from '../../lib/date';
 import {
-  cancelScheduledReminders,
-  requestNotificationPermission,
-  scheduleButtonTriggeredReminders,
+    cancelScheduledReminders,
+    requestNotificationPermission,
+    scheduleButtonTriggeredReminders,
 } from '../../lib/notifications';
 import { formatVolume } from '../../lib/unitConverter';
 import { useHydrationStore } from '../../stores/hydrationStore';
@@ -26,6 +26,25 @@ export default function HomeScreen() {
     notificationPermission,
     setNotificationPermission,
   } = useHydrationStore();
+
+  // データリセット機能
+  const handleResetData = () => {
+    Alert.alert(
+      'データリセット',
+      '今日の水分摂取データをリセットしますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: 'リセット',
+          style: 'destructive',
+          onPress: () => {
+            setTodayIntake([]);
+            console.log('Today\'s intake data reset');
+          },
+        },
+      ]
+    );
+  };
 
   const todayTotal = getTodayTotal();
   const progress = getTodayProgress();
@@ -79,6 +98,7 @@ export default function HomeScreen() {
           targetMl: dailyGoal.targetMl,
           consumedMl: getTodayTotal(),
           userSnoozeMin: settings.snoozeMinutes,
+          frequency: settings.notificationFrequency,
         });
         console.log('Initial notifications scheduled');
       } catch (error) {
@@ -126,6 +146,7 @@ export default function HomeScreen() {
           targetMl: dailyGoal.targetMl,
           consumedMl: todayTotal + amount,
           userSnoozeMin: settings.snoozeMinutes,
+          frequency: settings.notificationFrequency,
         });
         console.log('Notifications rescheduled after water intake');
       } catch (error) {
@@ -238,6 +259,16 @@ export default function HomeScreen() {
             }
           </Text>
         </View>
+
+        {/* データリセットボタン */}
+        <TouchableOpacity
+          style={styles.resetButton}
+          onPress={handleResetData}
+        >
+          <Text style={styles.resetButtonText}>
+            今日のデータをリセット
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -418,5 +449,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1C1C1E',
     lineHeight: 20,
+  },
+
+  // リセットボタン
+  resetButton: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

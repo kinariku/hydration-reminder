@@ -3,7 +3,7 @@ import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 import { parseTimeToDate, waitFor } from './helpers';
 import { ensureNotificationsEnabled } from './permissions';
-import { ScheduleNextReminderOptions, scheduleNextReminderInternal } from './planning';
+import { ScheduleNextReminderOptions } from './planning';
 import { scheduleSnoozeReminders } from './snooze';
 
 export const scheduleButtonTriggeredReminders = async (
@@ -24,6 +24,7 @@ export const scheduleButtonTriggeredReminders = async (
       consumedMl,
       reminderCount = 8,
       userSnoozeMin,
+      frequency = 'medium',
     } = options;
 
     await Notifications.cancelAllScheduledNotificationsAsync();
@@ -38,26 +39,23 @@ export const scheduleButtonTriggeredReminders = async (
       todaySleep.setDate(todaySleep.getDate() + 1);
     }
 
+    // メインの通知機能を削除し、スヌーズ通知のみをスケジュール
     if (now < todaySleep && consumedMl < targetMl) {
-      const plan = await scheduleNextReminderInternal({
-        wakeTime,
-        sleepTime,
-        targetMl,
-        consumedMl,
-        reminderCount,
-        userSnoozeMin,
+      console.log('Scheduling snooze reminders only...');
+      
+      // 次の通知時間を計算（現在時刻から1時間後）
+      const nextNotificationTime = new Date(now.getTime() + 60 * 60 * 1000);
+      const suggestMl = Math.max(200, Math.min(500, Math.round(targetMl * 0.1))); // 目標の10%、200-500mlの範囲
+      
+      const snoozeInterval = Math.max(5, userSnoozeMin ?? 10);
+      await scheduleSnoozeReminders({
+        baseTime: nextNotificationTime,
+        suggestMl: suggestMl,
+        intervalMinutes: snoozeInterval,
+        maxSnoozes: 5,
+        frequency: frequency,
       });
-
-      if (plan && plan.nextAt) {
-        const snoozeInterval = Math.max(5, userSnoozeMin ?? 10);
-        await scheduleSnoozeReminders({
-          baseTime: plan.nextAt,
-          suggestMl: plan.suggestMl,
-          intervalMinutes: snoozeInterval,
-          maxSnoozes: 5,
-        });
-        console.log("Today's next reminder + 5 snoozes scheduled");
-      }
+      console.log("Snooze reminders scheduled");
     } else {
       console.log('No further reminders scheduled for today (target reached or day ended).');
     }

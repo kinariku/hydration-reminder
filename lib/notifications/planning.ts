@@ -2,8 +2,8 @@ import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 import { planNextReminder, ReminderPlanResult } from '../reminderPlanner';
-import { NOTIFICATION_CHANNEL_ID } from './constants';
 import { ensureNotificationChannel } from './channels';
+import { NOTIFICATION_CHANNEL_ID } from './constants';
 import { parseTimeToDate } from './helpers';
 import { ensureNotificationsEnabled } from './permissions';
 
@@ -14,6 +14,7 @@ export interface ScheduleNextReminderOptions {
   consumedMl: number;
   reminderCount?: number;
   userSnoozeMin?: number;
+  frequency?: 'low' | 'medium' | 'high';
 }
 
 export const scheduleNextReminderInternal = async (
@@ -107,24 +108,12 @@ const buildNotificationMessage = (plan: ReminderPlanResult) => {
   const intervalText = formatInterval(plan.nextIntervalMin);
   const nextTimeText = plan.nextAt ? formatTime(plan.nextAt) : '';
 
-  let prefix = '';
-  switch (plan.paceCategory) {
-    case 'behind':
-      prefix = 'ちょっとペース遅め。';
-      break;
-    case 'ahead':
-      prefix = '今のペースなら少しゆっくりでOK。';
-      break;
-    default:
-      prefix = 'いいペースです。';
-  }
-
   const suggestion = `いま ${plan.suggestMl}ml いきますか？`;
   const nextInfo = `次は${intervalText}${nextTimeText ? `（${nextTimeText}頃）` : ''}を予定しています。`;
 
   return {
-    title: '💧 水分補給マインダー',
-    body: `${prefix}${suggestion} ${nextInfo}`.trim(),
+    title: '💧 水分補給リマインダー',
+    body: `${suggestion} ${nextInfo}`.trim(),
   };
 };
 
