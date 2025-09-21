@@ -2,9 +2,9 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { FullScreenLoader } from '@/components/FullScreenLoader';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { initDatabase } from '../lib/database';
 import { useHydrationStore } from '../stores/hydrationStore';
@@ -40,12 +40,10 @@ export default function RootLayout() {
   // Show loading screen while initializing
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F2F7' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: '#8E8E93' }}>
-          読み込み中...
-        </Text>
-      </View>
+      <FullScreenLoader
+        message="アプリを初期化しています..."
+        spinnerAccessibilityLabel="アプリを初期化しています"
+      />
     );
   }
 
