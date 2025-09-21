@@ -22,7 +22,9 @@ export default function NotificationSettingsScreen() {
     setSettings, 
     personalizedSettings,
     setPersonalizedSettings,
-    initializePersonalizedSettings 
+    initializePersonalizedSettings,
+    notificationPermission,
+    setNotificationPermission,
   } = useHydrationStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +54,7 @@ export default function NotificationSettingsScreen() {
       setUserProfile(updatedProfile);
       
       // 通知スケジュールを更新
-      if (settings.notificationPermission) {
+      if (notificationPermission) {
         await scheduleReminders(wakeTime, sleepTime, 2000); // 仮の目標量
       }
 
@@ -108,8 +110,8 @@ export default function NotificationSettingsScreen() {
           <View style={styles.settingItem}>
             <Text style={styles.settingLabel}>通知を有効にする</Text>
             <Switch
-              value={settings.notificationPermission}
-              onValueChange={(value) => setSettings({ notificationPermission: value })}
+              value={notificationPermission}
+              onValueChange={setNotificationPermission}
             />
           </View>
 

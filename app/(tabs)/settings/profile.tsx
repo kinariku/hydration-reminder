@@ -13,6 +13,7 @@ import { CommonHeader } from '../../../components/common-header';
 import { saveUserProfile } from '../../../lib/database';
 import { scheduleReminders } from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
+import { UserProfile } from '../../../types';
 
 export default function ProfileSettingsScreen() {
   const { userProfile, setUserProfile, calculateDailyGoal } = useHydrationStore();
@@ -68,10 +69,18 @@ export default function ProfileSettingsScreen() {
     }
   };
 
-  const previewGoal = calculateDailyGoal({
-    weightKg: Number(weight) || 0,
+  const previewProfile: UserProfile = {
+    id: userProfile?.id || 'preview',
+    weightKg: Number(weight) || userProfile?.weightKg || 0,
+    sex,
+    heightCm: height ? Number(height) : userProfile?.heightCm,
     activityLevel,
-  });
+    wakeTime,
+    sleepTime,
+    timezone: userProfile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
+
+  const previewGoal = calculateDailyGoal(previewProfile);
 
   // 性別選択のオプション
   const sexOptions = [

@@ -10,7 +10,6 @@ import {
     View,
 } from 'react-native';
 import { CommonHeader } from '../../../components/common-header';
-import { BUTTON_SIZES } from '../../../constants/buttonSizes';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
 export default function DataSettingsScreen() {

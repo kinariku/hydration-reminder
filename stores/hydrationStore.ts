@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { getLocalDateString } from '../lib/date';
 import { adjustScheduleBasedOnLearning, learnUserPatterns } from '../lib/learningEngine';
 import { getDefaultPersonalizedSettings } from '../lib/lifestyleTemplates';
 import { AppState, DailyGoal, IntakeLog, PersonalizedSettings, Settings, UserProfile } from '../types';
@@ -9,6 +10,7 @@ interface HydrationStore extends AppState {
   // Actions
   setUserProfile: (profile: UserProfile) => void;
   setDailyGoal: (goal: DailyGoal) => void;
+  setTodayIntake: (logs: IntakeLog[]) => void;
   addIntakeLog: (log: IntakeLog) => void;
   updateIntakeLog: (id: string, log: Partial<IntakeLog>) => void;
   deleteIntakeLog: (id: string) => void;
@@ -51,10 +53,27 @@ export const useHydrationStore = create<HydrationStore>()(
 
       setDailyGoal: (goal) => set({ dailyGoal: goal }),
 
+      setTodayIntake: (logs) => {
+        const todayKey = getLocalDateString();
+        set({
+          todayIntake: logs.filter(
+            (log) => getLocalDateString(new Date(log.dateTime)) === todayKey
+          ),
+        });
+      },
+
       addIntakeLog: (log) => {
-        set((state) => ({
-          todayIntake: [...state.todayIntake, log],
-        }));
+        set((state) => {
+          const todayKey = getLocalDateString();
+          const logKey = getLocalDateString(new Date(log.dateTime));
+          if (logKey !== todayKey || state.todayIntake.some((item) => item.id === log.id)) {
+            return { todayIntake: state.todayIntake };
+          }
+
+          return {
+            todayIntake: [...state.todayIntake, log],
+          };
+        });
       },
 
       updateIntakeLog: (id, log) => {
@@ -124,7 +143,7 @@ export const useHydrationStore = create<HydrationStore>()(
         const clampedAmount = Math.max(1200, Math.min(5000, totalAmount));
 
         return {
-          date: new Date().toISOString().split('T')[0],
+          date: getLocalDateString(),
           targetMl: clampedAmount,
           algorithm: 'v1',
           manualOverride: false,
@@ -132,9 +151,9 @@ export const useHydrationStore = create<HydrationStore>()(
       },
 
       getTodayIntake: () => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         return get().todayIntake.filter(
-          (log) => log.dateTime.startsWith(today)
+          (log) => getLocalDateString(new Date(log.dateTime)) === today
         );
       },
 

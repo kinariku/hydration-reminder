@@ -18,9 +18,9 @@ export default function SettingsScreen() {
     setSettings, 
     personalizedSettings,
     setPersonalizedSettings,
-    initializePersonalizedSettings,
     dailyGoal,
-    calculateDailyGoal
+    notificationPermission,
+    setNotificationPermission,
   } = useHydrationStore();
 
   const handleEditPress = (categoryId: string) => {
@@ -28,7 +28,7 @@ export default function SettingsScreen() {
   };
 
   const handleNotificationToggle = (value: boolean) => {
-    setSettings({ notificationPermission: value });
+    setNotificationPermission(value);
   };
 
   const handleAnalyticsToggle = (value: boolean) => {
@@ -131,7 +131,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <Switch
-                value={settings.notificationPermission}
+                value={notificationPermission}
                 onValueChange={handleNotificationToggle}
               />
             </View>

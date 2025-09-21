@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MainHeader } from '../../components/main-header';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
+import { getLocalDateString } from '../../lib/date';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
 import { requestNotificationPermission } from '../../lib/notifications';
 import { useHydrationStore } from '../../stores/hydrationStore';
@@ -11,8 +12,10 @@ export default function HomeScreen() {
   const {
     userProfile,
     dailyGoal,
+    todayIntake,
     getTodayTotal,
     getTodayProgress,
+    setTodayIntake,
     addIntakeLog: addLog,
     settings,
     notificationPermission,
@@ -23,17 +26,12 @@ export default function HomeScreen() {
   const progress = getTodayProgress();
   const remaining = Math.max(0, (dailyGoal?.targetMl || 0) - todayTotal);
 
-  // データ統計の計算
-  const getDataStats = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayLogs = getIntakeLogs(today);
-    const totalIntake = todayLogs.reduce((sum, log) => sum + log.amountMl, 0);
-    const recordCount = todayLogs.length;
+  const stats = useMemo(() => {
+    const totalIntake = todayIntake.reduce((sum, log) => sum + log.amountMl, 0);
+    const recordCount = todayIntake.length;
     const avgIntake = recordCount > 0 ? Math.round(totalIntake / recordCount) : 0;
     return { totalIntake, recordCount, avgIntake };
-  };
-
-  const stats = getDataStats();
+  }, [todayIntake]);
 
   useEffect(() => {
     // Request notification permission on first load
@@ -43,12 +41,9 @@ export default function HomeScreen() {
 
     // Load today's intake logs from database
     const loadTodayIntake = () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       const todayLogs = getIntakeLogs(today);
-      // Update store with today's logs
-      todayLogs.forEach(log => {
-        addLog(log);
-      });
+      setTodayIntake(todayLogs);
     };
 
     loadTodayIntake();
