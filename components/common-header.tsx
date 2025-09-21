@@ -20,7 +20,7 @@ export function CommonHeader({ title, showBackButton = true, onBack, rightElemen
     if (onBack) {
       onBack();
     } else {
-      router.push('/(tabs)/settings');
+      router.back();
     }
   };
 

@@ -6,6 +6,8 @@ export default function SettingsStackLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        headerTitle: '',
+        header: () => null,
       }}
     />
   );

@@ -12,10 +12,11 @@ import {
 import { CommonHeader } from '../../../components/common-header';
 import { saveUserProfile } from '../../../lib/database';
 import {
-  cancelScheduledReminders,
-  requestNotificationPermission,
-  scheduleReminders,
-  sendTestNotification,
+    cancelScheduledReminders,
+    getScheduledNotifications,
+    requestNotificationPermission,
+    scheduleNextReminder,
+    sendTestNotification,
 } from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
@@ -38,6 +39,8 @@ export default function NotificationSettingsScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [wakeTime, setWakeTime] = useState(userProfile?.wakeTime || '07:00');
   const [sleepTime, setSleepTime] = useState(userProfile?.sleepTime || '23:00');
+  const [scheduledNotifications, setScheduledNotifications] = useState<any[]>([]);
+  const [showNotificationList, setShowNotificationList] = useState(false);
 
   const handleNotificationToggle = async (value: boolean) => {
     setIsNotificationUpdating(true);
@@ -63,7 +66,7 @@ export default function NotificationSettingsScreen() {
 
         const goal = dailyGoal ?? calculateDailyGoal(userProfile);
 
-        await scheduleReminders(
+        await scheduleNextReminder(
           userProfile.wakeTime,
           userProfile.sleepTime,
           goal.targetMl
@@ -107,7 +110,7 @@ export default function NotificationSettingsScreen() {
       // 通知スケジュールを更新
       if (notificationPermission) {
         const goal = dailyGoal ?? calculateDailyGoal(updatedProfile);
-        await scheduleReminders(wakeTime, sleepTime, goal.targetMl);
+        await scheduleNextReminder(wakeTime, sleepTime, goal.targetMl);
       }
 
       Alert.alert('成功', '起床・就寝時刻を更新しました');
@@ -149,6 +152,28 @@ export default function NotificationSettingsScreen() {
     } else {
       Alert.alert('エラー', 'テスト通知の送信に失敗しました');
     }
+  };
+
+  const handleViewScheduledNotifications = async () => {
+    try {
+      const notifications = await getScheduledNotifications();
+      setScheduledNotifications(notifications);
+      setShowNotificationList(true);
+    } catch (error) {
+      console.error('Failed to get scheduled notifications:', error);
+      Alert.alert('エラー', '通知一覧の取得に失敗しました');
+    }
+  };
+
+  const formatNotificationTime = (date: Date) => {
+    return date.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   };
 
   const frequencyOptions = [
@@ -359,6 +384,20 @@ export default function NotificationSettingsScreen() {
               </Text>
             </View>
 
+            {/* スケジュール通知一覧ボタン */}
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>スケジュール通知一覧</Text>
+              <TouchableOpacity
+                style={styles.testButton}
+                onPress={handleViewScheduledNotifications}
+              >
+                <Text style={styles.testButtonText}>通知一覧を表示</Text>
+              </TouchableOpacity>
+              <Text style={styles.helpText}>
+                現在スケジュールされている通知を確認できます
+              </Text>
+            </View>
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>静音時間</Text>
               <Text style={styles.timeList}>
@@ -383,6 +422,45 @@ export default function NotificationSettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* 通知一覧モーダル */}
+      {showNotificationList && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>スケジュール通知一覧</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowNotificationList(false)}
+              >
+                <Text style={styles.closeButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.notificationList}>
+              {scheduledNotifications.length === 0 ? (
+                <Text style={styles.noNotificationsText}>
+                  スケジュールされた通知はありません
+                </Text>
+              ) : (
+                scheduledNotifications.map((notification, index) => (
+                  <View key={index} style={styles.notificationItem}>
+                    <Text style={styles.notificationTitle}>
+                      {notification.content.title}
+                    </Text>
+                    <Text style={styles.notificationBody}>
+                      {notification.content.body}
+                    </Text>
+                    <Text style={styles.notificationTime}>
+                      {formatNotificationTime(new Date(notification.trigger.date))}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -553,5 +631,80 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // モーダルスタイル
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    width: '90%',
+    maxHeight: '80%',
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1E',
+  },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#8E8E93',
+    fontWeight: '600',
+  },
+  notificationList: {
+    maxHeight: 400,
+  },
+  notificationItem: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 4,
+  },
+  notificationBody: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 4,
+  },
+  notificationTime: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontFamily: 'monospace',
+  },
+  noNotificationsText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    padding: 20,
   },
 });

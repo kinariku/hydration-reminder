@@ -5,7 +5,7 @@ import { ProgressRing } from '../../components/ui/ProgressRing';
 import { QuickAddButton } from '../../components/ui/QuickAddButton';
 import { getIntakeLogs, saveIntakeLog } from '../../lib/database';
 import { getLocalDateString } from '../../lib/date';
-import { requestNotificationPermission, scheduleReminders } from '../../lib/notifications';
+import { requestNotificationPermission, scheduleNextReminder } from '../../lib/notifications';
 import { useHydrationStore } from '../../stores/hydrationStore';
 
 export default function HomeScreen() {
@@ -48,18 +48,18 @@ export default function HomeScreen() {
 
     loadTodayIntake();
 
-    // Schedule notifications if permission is granted and user profile exists
+    // Schedule next reminder if permission is granted and user profile exists
     const scheduleNotifications = async () => {
       if (notificationPermission && userProfile && dailyGoal) {
         try {
-          await scheduleReminders(
+          await scheduleNextReminder(
             userProfile.wakeTime,
             userProfile.sleepTime,
             dailyGoal.targetMl
           );
-          console.log('Notifications scheduled successfully');
+          console.log('Next reminder scheduled on app start');
         } catch (error) {
-          console.warn('Failed to schedule notifications:', error);
+          console.warn('Failed to schedule next reminder:', error);
         }
       }
     };
@@ -82,6 +82,20 @@ export default function HomeScreen() {
       await saveIntakeLog(log);
     } catch (error) {
       console.error('Failed to save intake log:', error);
+    }
+
+    // 水を飲んだ後に次の通知をスケジュール
+    if (notificationPermission && userProfile && dailyGoal) {
+      try {
+        await scheduleNextReminder(
+          userProfile.wakeTime,
+          userProfile.sleepTime,
+          dailyGoal.targetMl
+        );
+        console.log('Next reminder scheduled after water intake');
+      } catch (error) {
+        console.error('Failed to schedule next reminder:', error);
+      }
     }
   };
 

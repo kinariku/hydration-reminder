@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { CommonHeader } from '../../../components/common-header';
 import { saveUserProfile } from '../../../lib/database';
-import { scheduleReminders } from '../../../lib/notifications';
+import { scheduleNextReminder } from '../../../lib/notifications';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 import { UserProfile } from '../../../types';
 
@@ -57,7 +57,7 @@ export default function ProfileSettingsScreen() {
       setUserProfile(profile);
       
       const goal = calculateDailyGoal(profile);
-      await scheduleReminders(wakeTime, sleepTime, goal.targetMl);
+      await scheduleNextReminder(wakeTime, sleepTime, goal.targetMl);
 
       Alert.alert('成功', 'プロフィールを更新しました');
       router.push('/(tabs)/settings');

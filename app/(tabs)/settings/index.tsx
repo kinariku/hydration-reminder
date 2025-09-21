@@ -8,8 +8,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { MainHeader } from '../../components/main-header';
-import { useHydrationStore } from '../../stores/hydrationStore';
+import { MainHeader } from '../../../components/main-header';
+import { useHydrationStore } from '../../../stores/hydrationStore';
 
 export default function SettingsScreen() {
   const { 

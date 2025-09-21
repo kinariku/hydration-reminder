@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveUserProfile } from '../lib/database';
-import { scheduleReminders } from '../lib/notifications';
+import { scheduleNextReminder } from '../lib/notifications';
 import { useHydrationStore } from '../stores/hydrationStore';
 
 export default function OnboardingScreen() {
@@ -56,7 +56,7 @@ export default function OnboardingScreen() {
 
       // Schedule notifications
       const goal = calculateDailyGoal(profile);
-      await scheduleReminders(wakeTime, sleepTime, goal.targetMl);
+      await scheduleNextReminder(wakeTime, sleepTime, goal.targetMl);
 
       // Force reload to show home screen
       router.replace('/(tabs)');

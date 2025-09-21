@@ -15,12 +15,16 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        headerTitle: '',
+        header: () => null,
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'ホーム',
           headerShown: false,
+          headerTitle: '',
+          header: () => null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
@@ -29,39 +33,9 @@ export default function TabLayout() {
         options={{
           title: '設定',
           headerShown: false,
+          headerTitle: '',
+          header: () => null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings/profile"
-        options={{
-          href: null, // タブバーに表示しない
-          headerShown: false,
-          tabBarStyle: { display: 'none' }, // タブバーを完全に非表示
-        }}
-      />
-      <Tabs.Screen
-        name="settings/notifications"
-        options={{
-          href: null, // タブバーに表示しない
-          headerShown: false,
-          tabBarStyle: { display: 'none' }, // タブバーを完全に非表示
-        }}
-      />
-      <Tabs.Screen
-        name="settings/app"
-        options={{
-          href: null, // タブバーに表示しない
-          headerShown: false,
-          tabBarStyle: { display: 'none' }, // タブバーを完全に非表示
-        }}
-      />
-      <Tabs.Screen
-        name="settings/data"
-        options={{
-          href: null, // タブバーに表示しない
-          headerShown: false,
-          tabBarStyle: { display: 'none' }, // タブバーを完全に非表示
         }}
       />
     </Tabs>
