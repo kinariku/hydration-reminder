@@ -79,6 +79,15 @@ export const scheduleReminders = async (
   }
 };
 
+export const cancelScheduledReminders = async () => {
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch (error) {
+    console.warn('Failed to cancel scheduled notifications:', error);
+    throw error;
+  }
+};
+
 const calculateReminderTimes = (
   wakeTime: string,
   sleepTime: string,
