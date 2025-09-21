@@ -27,6 +27,8 @@ export interface IntakeLog {
 export interface ReminderPlan {
   date: string; // YYYY-MM-DD format
   times: string[]; // HH:mm format
+  lastResponse?: 'drank' | 'snooze' | 'ignored';
+  lastSuggestMl?: number;
 }
 
 export interface Settings {

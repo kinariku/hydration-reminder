@@ -52,11 +52,12 @@ export default function HomeScreen() {
     const scheduleNotifications = async () => {
       if (notificationPermission && userProfile && dailyGoal) {
         try {
-          await scheduleNextReminder(
-            userProfile.wakeTime,
-            userProfile.sleepTime,
-            dailyGoal.targetMl
-          );
+          await scheduleNextReminder({
+            wakeTime: userProfile.wakeTime,
+            sleepTime: userProfile.sleepTime,
+            targetMl: dailyGoal.targetMl,
+            consumedMl: getTodayTotal(),
+          });
           console.log('Next reminder scheduled on app start');
         } catch (error) {
           console.warn('Failed to schedule next reminder:', error);
@@ -65,7 +66,14 @@ export default function HomeScreen() {
     };
 
     scheduleNotifications();
-  }, [notificationPermission, userProfile, dailyGoal]);
+  }, [
+    notificationPermission,
+    userProfile,
+    dailyGoal,
+    getTodayTotal,
+    setNotificationPermission,
+    setTodayIntake,
+  ]);
 
   const handleQuickAdd = async (amount: number) => {
     const log = {
@@ -86,12 +94,14 @@ export default function HomeScreen() {
 
     // 水を飲んだ後に次の通知をスケジュール
     if (notificationPermission && userProfile && dailyGoal) {
+      const updatedTotal = getTodayTotal();
       try {
-        await scheduleNextReminder(
-          userProfile.wakeTime,
-          userProfile.sleepTime,
-          dailyGoal.targetMl
-        );
+        await scheduleNextReminder({
+          wakeTime: userProfile.wakeTime,
+          sleepTime: userProfile.sleepTime,
+          targetMl: dailyGoal.targetMl,
+          consumedMl: updatedTotal,
+        });
         console.log('Next reminder scheduled after water intake');
       } catch (error) {
         console.error('Failed to schedule next reminder:', error);
