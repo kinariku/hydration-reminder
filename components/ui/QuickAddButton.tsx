@@ -26,7 +26,7 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({
       disabled={disabled}
     >
       <Text style={[styles.text, disabled && styles.disabledText]}>
-        +{amount}ml
+        +{amount} ml
       </Text>
     </TouchableOpacity>
   );
@@ -34,18 +34,21 @@ export const QuickAddButton: React.FC<QuickAddButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#F0F6FF',
+    borderRadius: 20,
     paddingHorizontal: BUTTON_SIZES.medium.paddingHorizontal,
     paddingVertical: BUTTON_SIZES.medium.paddingVertical,
-    borderRadius: 25,
     margin: 4,
     minWidth: BUTTON_SIZES.medium.minWidth,
+    borderWidth: 1,
+    borderColor: 'rgba(28,108,240,0.15)',
   },
   disabled: {
     backgroundColor: '#E5E5EA',
+    borderColor: '#E5E5EA',
   },
   text: {
-    color: 'white',
+    color: '#1C6CF0',
     fontSize: BUTTON_SIZES.medium.fontSize,
     fontWeight: '600',
   },
