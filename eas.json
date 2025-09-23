@@ -20,6 +20,11 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "kinarikuramoto@gmail.com",
+        "ascAppId": "6730000000"
+      }
+    }
   }
 }

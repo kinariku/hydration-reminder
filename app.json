@@ -2,16 +2,20 @@
   "expo": {
     "name": "StayHydrated",
     "slug": "stayhydrated",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "stayhydrated",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "notification": {
+      "icon": "./assets/images/notification-icon.png",
+      "color": "#0EA5E9"
+    },
     "ios": {
       "bundleIdentifier": "app.kinari.stayhydrated",
       "supportsTablet": true,
-      "buildNumber": "9",
+      "buildNumber": "19",
       "infoPlist": {
         "UIBackgroundModes": [
           "fetch"
@@ -31,9 +35,10 @@
       "predictiveBackGestureEnabled": false,
       "package": "app.kinari.stayhydrated",
       "permissions": [
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.WAKE_LOCK"
+        "RECEIVE_BOOT_COMPLETED",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "WAKE_LOCK"
       ]
     },
     "web": {
