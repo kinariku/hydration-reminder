@@ -53,6 +53,14 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
+        <Stack.Screen 
+          name="add-water" 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
+            animation: 'slide_from_right'
+          }} 
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

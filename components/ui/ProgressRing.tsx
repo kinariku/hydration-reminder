@@ -6,9 +6,10 @@ interface ProgressRingProps {
   progress: number; // 0 to 1
   size?: number;
   strokeWidth?: number;
-  color?: string | [string, string];
+  color?: string | string[];
   backgroundColor?: string;
   children?: React.ReactNode;
+  showsGradient?: boolean;
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -17,9 +18,10 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   progress,
   size = 200,
   strokeWidth = 12,
-  color = '#007AFF',
+  color = '#FFFFFF',
   backgroundColor = '#E5E5EA',
   children,
+  showsGradient = true,
 }) => {
   const normalizedProgress = Math.max(0, Math.min(progress, 1));
   const radius = useMemo(() => (size - strokeWidth) / 2, [size, strokeWidth]);
@@ -44,14 +46,14 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   const gradientIdRef = useRef(
     `ring-gradient-${Math.random().toString(36).slice(2)}`
   );
-  const ringStroke = Array.isArray(color)
+  const ringStroke = Array.isArray(color) && showsGradient
     ? `url(#${gradientIdRef.current})`
-    : color;
+    : Array.isArray(color) ? color[0] : color;
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFillObject}>
-        {Array.isArray(color) && (
+        {Array.isArray(color) && showsGradient && (
           <Defs>
             <LinearGradient
               id={gradientIdRef.current}
@@ -60,8 +62,13 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
               x2="0%"
               y2="100%"
             >
-              <Stop offset="0%" stopColor={color[0]} />
-              <Stop offset="100%" stopColor={color[1]} />
+              {color.map((colorValue, index) => (
+                <Stop 
+                  key={index}
+                  offset={`${(index / (color.length - 1)) * 100}%`} 
+                  stopColor={colorValue} 
+                />
+              ))}
             </LinearGradient>
           </Defs>
         )}

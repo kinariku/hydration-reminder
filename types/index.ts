@@ -40,6 +40,16 @@ export interface Settings {
   analyticsOptIn: boolean;
   language: 'ja' | 'en';
   theme: 'light' | 'dark' | 'system';
+  enableLearning: boolean;
+  enableBackup: boolean;
+  // 新しい通知設定
+  enableMorningNotification?: boolean;
+  enableReminderNotification?: boolean;
+  enableSnoozeNotification?: boolean;
+  notificationSound?: boolean;
+  notificationVibration?: boolean;
+  customNotificationMessage?: string;
+  notificationInterval?: number;
 }
 
 export interface Lifestyle {
@@ -81,3 +91,6 @@ export interface AppState {
   isOnboarded: boolean;
   notificationPermission: boolean;
 }
+
+// 設定ページ関連の型定義をエクスポート
+export * from './settings';

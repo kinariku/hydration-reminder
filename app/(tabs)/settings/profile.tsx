@@ -1,3 +1,5 @@
+import { FontAwesome5 } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
 import {
     ScrollView,
@@ -7,7 +9,8 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { CommonHeader } from '../../../components/common-header';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { saveUserProfile } from '../../../lib/database';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
@@ -42,10 +45,7 @@ export default function ProfileSettingsScreen() {
   const handleSave = async () => {
     if (!userProfile || !weight || isNaN(Number(weight)) || Number(weight) <= 0) return;
 
-    // 時刻のバリデーション
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(wakeTime) || !timeRegex.test(sleepTime)) return;
-
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
     try {
       const updatedProfile = {
@@ -87,9 +87,34 @@ export default function ProfileSettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <CommonHeader title="プロフィール設定" />
+      <Svg style={styles.backgroundGradient} width="100%" height="100%">
+        <Defs>
+          <LinearGradient id="profileGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#E0F2FE" />
+            <Stop offset="25%" stopColor="#BAE6FD" />
+            <Stop offset="50%" stopColor="#7DD3FC" />
+            <Stop offset="75%" stopColor="#38BDF8" />
+            <Stop offset="100%" stopColor="#0EA5E9" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#profileGradient)" />
+      </Svg>
       
-      <ScrollView contentContainerStyle={styles.content}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.headerSection}>
+          <View style={styles.titleContainer}>
+            <FontAwesome5 name="user-circle" size={28} color="#0EA5E9" />
+            <Text style={styles.appTitle}>プロフィール設定</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+      
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+      >
         {/* 体重入力 */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>体重 (kg) *</Text>
@@ -205,40 +230,80 @@ export default function ProfileSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#E0F2FE',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  safeArea: {
+    backgroundColor: 'transparent',
+    zIndex: 10,
+  },
+  headerSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  appTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0369A1',
+    letterSpacing: -0.5,
+  },
+  scrollView: {
+    flex: 1,
   },
   content: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: 24,
+    paddingBottom: 120,
+    flexGrow: 1,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0369A1',
+    marginBottom: 12,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1C1C1E',
+    color: '#0369A1',
+    fontWeight: '600',
   },
   unit: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: '#0284C7',
     marginLeft: 8,
+    fontWeight: '600',
   },
   cardContainer: {
     flexDirection: 'row',
@@ -247,44 +312,54 @@ const styles = StyleSheet.create({
   },
   sexCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 24,
+    padding: 20,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E5E5EA',
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sexCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
+    borderColor: '#0EA5E9',
+    backgroundColor: 'rgba(14, 165, 233, 0.15)',
   },
   sexIcon: {
     fontSize: 32,
     marginBottom: 8,
   },
   sexLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1C1C1E',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0369A1',
   },
   sexLabelSelected: {
-    color: '#007AFF',
+    color: '#0EA5E9',
   },
   activityContainer: {
     gap: 12,
   },
   activityCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 24,
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E5E5EA',
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   activityCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
+    borderColor: '#0EA5E9',
+    backgroundColor: 'rgba(14, 165, 233, 0.15)',
   },
   activityIcon: {
     fontSize: 24,
@@ -292,39 +367,46 @@ const styles = StyleSheet.create({
   },
   activityLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1C1C1E',
+    fontWeight: '700',
+    color: '#0369A1',
     flex: 1,
   },
   activityLabelSelected: {
-    color: '#007AFF',
+    color: '#0EA5E9',
   },
   activityDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#0284C7',
+    fontWeight: '500',
   },
   activityDescriptionSelected: {
-    color: '#007AFF',
+    color: '#0EA5E9',
   },
   saveButtonContainer: {
-    marginTop: 20,
+    marginTop: 32,
   },
   saveButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: '#0EA5E9',
+    borderRadius: 24,
+    paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   saveButtonDisabled: {
-    backgroundColor: '#E5E5EA',
+    backgroundColor: 'rgba(14, 165, 233, 0.3)',
+    shadowOpacity: 0.1,
   },
   saveButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
   saveButtonTextDisabled: {
-    color: '#8E8E93',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
 });

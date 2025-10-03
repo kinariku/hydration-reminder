@@ -2,21 +2,25 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface NotificationStatusCardProps {
-  isEnabled: boolean;
-  onOpenSettings?: () => void;
+  status: {
+    isEnabled: boolean;
+    canRequest: boolean;
+    status: string;
+  };
+  onSetupPress?: () => void;
   showOpenButton?: boolean;
 }
 
 export const NotificationStatusCard: React.FC<NotificationStatusCardProps> = ({
-  isEnabled,
-  onOpenSettings,
+  status,
+  onSetupPress,
   showOpenButton = false,
 }) => {
   return (
     <View style={styles.notificationCard}>
       <View style={styles.notificationHeader}>
         <Text style={styles.notificationTitle}>通知の有効化</Text>
-        {isEnabled ? (
+        {status.isEnabled ? (
           <View style={styles.statusBadge}>
             <Text style={styles.statusBadgeText}>ON</Text>
           </View>
@@ -27,7 +31,7 @@ export const NotificationStatusCard: React.FC<NotificationStatusCardProps> = ({
         )}
       </View>
       
-      {isEnabled ? (
+      {status.isEnabled ? (
         <Text style={styles.notificationDescription}>
           通知は正常に動作しています
         </Text>
@@ -36,10 +40,10 @@ export const NotificationStatusCard: React.FC<NotificationStatusCardProps> = ({
           <Text style={styles.notificationDescription}>
             iPhone設定で通知を有効にしてください
           </Text>
-          {showOpenButton && onOpenSettings && (
+          {showOpenButton && onSetupPress && (
             <TouchableOpacity 
               style={styles.settingsButton}
-              onPress={onOpenSettings}
+              onPress={onSetupPress}
             >
               <Text style={styles.settingsButtonText}>設定を開く</Text>
             </TouchableOpacity>

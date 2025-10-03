@@ -1,3 +1,4 @@
+import { FontAwesome5 } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert, AppState, ScrollView,
@@ -7,9 +8,11 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { CommonHeader } from '../../../components/common-header';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { NotificationStatusCard } from '../../../components/ui/NotificationStatusCard';
 import { TestButton } from '../../../components/ui/TestButton';
+import { RADIUS } from '../../../constants/radius';
 import { saveUserProfile } from '../../../lib/database';
 import {
     checkNotificationStatus,
@@ -37,6 +40,19 @@ export default function NotificationSettingsScreen() {
   const [sleepTime, setSleepTime] = useState(userProfile?.sleepTime || '23:00');
   const [scheduledNotifications, setScheduledNotifications] = useState<any[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  
+  // 通知設定の追加項目
+  const [tempNotificationFrequency, setTempNotificationFrequency] = useState<'low' | 'medium' | 'high'>(
+    settings?.notificationFrequency || 'medium'
+  );
+  const [tempSnoozeMinutes, setTempSnoozeMinutes] = useState(settings?.snoozeMinutes || 15);
+  const [enableMorningNotification, setEnableMorningNotification] = useState((settings as any)?.enableMorningNotification ?? true);
+  const [enableReminderNotification, setEnableReminderNotification] = useState((settings as any)?.enableReminderNotification ?? true);
+  const [enableSnoozeNotification, setEnableSnoozeNotification] = useState((settings as any)?.enableSnoozeNotification ?? true);
+  const [notificationSound, setNotificationSound] = useState((settings as any)?.notificationSound ?? true);
+  const [notificationVibration, setNotificationVibration] = useState((settings as any)?.notificationVibration ?? true);
+  const [customMessage, setCustomMessage] = useState((settings as any)?.customNotificationMessage || '');
+  const [notificationInterval, setNotificationInterval] = useState((settings as any)?.notificationInterval || 60);
 
   // 時刻フォーマット関数
   const formatTimeInput = (text: string) => {
@@ -77,13 +93,6 @@ export default function NotificationSettingsScreen() {
     status: string;
   }>({ isEnabled: false, canRequest: false, status: 'unknown' });
   
-  // 設定変更の追跡
-  const [tempNotificationFrequency, setTempNotificationFrequency] = useState(
-    settings?.notificationFrequency || 'medium'
-  );
-  const [tempSnoozeMinutes, setTempSnoozeMinutes] = useState(
-    settings?.snoozeMinutes || 15
-  );
 
   
   // TextInputのref
@@ -106,8 +115,20 @@ export default function NotificationSettingsScreen() {
     const timeChanged = wakeTime !== userProfile?.wakeTime || sleepTime !== userProfile?.sleepTime;
     const frequencyChanged = tempNotificationFrequency !== (settings?.notificationFrequency || 'medium');
     const snoozeChanged = tempSnoozeMinutes !== (settings?.snoozeMinutes || 15);
-    setHasChanges(timeChanged || frequencyChanged || snoozeChanged);
-  }, [wakeTime, sleepTime, tempNotificationFrequency, tempSnoozeMinutes, userProfile, settings]);
+    const morningChanged = enableMorningNotification !== ((settings as any)?.enableMorningNotification ?? true);
+    const reminderChanged = enableReminderNotification !== ((settings as any)?.enableReminderNotification ?? true);
+    const snoozeEnabledChanged = enableSnoozeNotification !== ((settings as any)?.enableSnoozeNotification ?? true);
+    const soundChanged = notificationSound !== ((settings as any)?.notificationSound ?? true);
+    const vibrationChanged = notificationVibration !== ((settings as any)?.notificationVibration ?? true);
+    const messageChanged = customMessage !== ((settings as any)?.customNotificationMessage || '');
+    const intervalChanged = notificationInterval !== ((settings as any)?.notificationInterval || 60);
+    
+    setHasChanges(timeChanged || frequencyChanged || snoozeChanged || morningChanged || 
+                 reminderChanged || snoozeEnabledChanged || soundChanged || vibrationChanged || 
+                 messageChanged || intervalChanged);
+  }, [wakeTime, sleepTime, tempNotificationFrequency, tempSnoozeMinutes, enableMorningNotification, 
+      enableReminderNotification, enableSnoozeNotification, notificationSound, notificationVibration, 
+      customMessage, notificationInterval, userProfile, settings]);
 
   // 保存関数
   const handleSave = async () => {
@@ -133,7 +154,14 @@ export default function NotificationSettingsScreen() {
         ...settings,
         notificationFrequency: tempNotificationFrequency as 'low' | 'medium' | 'high',
         snoozeMinutes: tempSnoozeMinutes,
-      });
+        enableMorningNotification,
+        enableReminderNotification,
+        enableSnoozeNotification,
+        notificationSound,
+        notificationVibration,
+        customNotificationMessage: customMessage,
+        notificationInterval,
+      } as any);
 
       setHasChanges(false);
       console.log('Notification settings saved successfully');
@@ -287,16 +315,41 @@ export default function NotificationSettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <CommonHeader title="通知設定" />
+      <Svg style={styles.backgroundGradient} width="100%" height="100%">
+        <Defs>
+          <LinearGradient id="notificationGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#E0F2FE" />
+            <Stop offset="25%" stopColor="#BAE6FD" />
+            <Stop offset="50%" stopColor="#7DD3FC" />
+            <Stop offset="75%" stopColor="#38BDF8" />
+            <Stop offset="100%" stopColor="#0EA5E9" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#notificationGradient)" />
+      </Svg>
       
-      <ScrollView contentContainerStyle={styles.content}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.headerSection}>
+          <View style={styles.titleContainer}>
+            <FontAwesome5 name="bell" size={28} color="#0EA5E9" />
+            <Text style={styles.appTitle}>通知設定</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+      
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+      >
         {/* 基本設定 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>基本設定</Text>
           
           <NotificationStatusCard 
-            isEnabled={notificationStatus.isEnabled}
-            onOpenSettings={handleOpenSettings}
+            status={notificationStatus}
+            onSetupPress={handleOpenSettings}
             showOpenButton={true}
           />
 
@@ -461,6 +514,106 @@ export default function NotificationSettingsScreen() {
             </Text>
           </View>
 
+          {/* 通知の種類設定 */}
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>通知の種類</Text>
+            <View style={styles.toggleContainer}>
+              <View style={styles.toggleItem}>
+                <Text style={styles.toggleLabel}>朝の通知</Text>
+                <TouchableOpacity
+                  style={[styles.toggle, enableMorningNotification && styles.toggleActive]}
+                  onPress={() => setEnableMorningNotification(!enableMorningNotification)}
+                >
+                  <View style={[styles.toggleThumb, enableMorningNotification && styles.toggleThumbActive]} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.toggleItem}>
+                <Text style={styles.toggleLabel}>リマインダー通知</Text>
+                <TouchableOpacity
+                  style={[styles.toggle, enableReminderNotification && styles.toggleActive]}
+                  onPress={() => setEnableReminderNotification(!enableReminderNotification)}
+                >
+                  <View style={[styles.toggleThumb, enableReminderNotification && styles.toggleThumbActive]} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.toggleItem}>
+                <Text style={styles.toggleLabel}>スヌーズ通知</Text>
+                <TouchableOpacity
+                  style={[styles.toggle, enableSnoozeNotification && styles.toggleActive]}
+                  onPress={() => setEnableSnoozeNotification(!enableSnoozeNotification)}
+                >
+                  <View style={[styles.toggleThumb, enableSnoozeNotification && styles.toggleThumbActive]} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* 通知の音設定 */}
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>通知の音</Text>
+            <View style={styles.toggleContainer}>
+              <View style={styles.toggleItem}>
+                <Text style={styles.toggleLabel}>サウンド</Text>
+                <TouchableOpacity
+                  style={[styles.toggle, notificationSound && styles.toggleActive]}
+                  onPress={() => setNotificationSound(!notificationSound)}
+                >
+                  <View style={[styles.toggleThumb, notificationSound && styles.toggleThumbActive]} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.toggleItem}>
+                <Text style={styles.toggleLabel}>バイブレーション</Text>
+                <TouchableOpacity
+                  style={[styles.toggle, notificationVibration && styles.toggleActive]}
+                  onPress={() => setNotificationVibration(!notificationVibration)}
+                >
+                  <View style={[styles.toggleThumb, notificationVibration && styles.toggleThumbActive]} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* 通知間隔設定 */}
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>通知間隔（分）</Text>
+            <View style={styles.optionContainer}>
+              {[30, 60, 90, 120].map((interval) => (
+                <TouchableOpacity
+                  key={interval}
+                  style={[
+                    styles.optionButton,
+                    notificationInterval === interval && styles.optionButtonSelected
+                  ]}
+                  onPress={() => setNotificationInterval(interval)}
+                >
+                  <Text style={[
+                    styles.optionText,
+                    notificationInterval === interval && styles.optionTextSelected
+                  ]}>
+                    {interval}分
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* カスタムメッセージ設定 */}
+          <View style={styles.settingItem}>
+            <Text style={styles.settingLabel}>カスタムメッセージ</Text>
+            <TextInput
+              style={styles.textInput}
+              value={customMessage}
+              onChangeText={setCustomMessage}
+              placeholder="例: 水分補給の時間です！"
+              placeholderTextColor="#8E8E93"
+              multiline
+              numberOfLines={2}
+            />
+            <Text style={styles.helpText}>
+              通知に表示するカスタムメッセージを設定できます
+            </Text>
+          </View>
+
           {/* 保存ボタン */}
           <View style={styles.saveButtonContainer}>
             <TouchableOpacity
@@ -541,27 +694,60 @@ export default function NotificationSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#E0F2FE',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  safeArea: {
+    backgroundColor: 'transparent',
+    zIndex: 10,
+  },
+  headerSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  appTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0369A1',
+    letterSpacing: -0.5,
+  },
+  scrollView: {
+    flex: 1,
   },
   placeholder: {
     width: 40,
   },
   content: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: 24,
+    paddingBottom: 120,
+    flexGrow: 1,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1C1C1E',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0369A1',
     marginBottom: 16,
   },
   settingItem: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
@@ -587,7 +773,7 @@ const styles = StyleSheet.create({
   optionButton: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: '#E5E5EA',
     backgroundColor: '#FFFFFF',
@@ -657,7 +843,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     backgroundColor: '#FF3B30',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     paddingVertical: 16,
     alignItems: 'center',
   },
@@ -669,7 +855,7 @@ const styles = StyleSheet.create({
   // 生活リズムカード（シンプルで格好いい）
   lifeRhythmCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
@@ -713,7 +899,7 @@ const styles = StyleSheet.create({
   },
   timeInput: {
     backgroundColor: '#F8F9FA',
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
@@ -748,7 +934,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F2F2F7',
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginTop: 8,
@@ -757,15 +943,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginRight: 8,
   },
-  timeInput: {
-    flex: 1,
-    fontSize: 20,
-    color: '#1C1C1E',
-    fontWeight: '600',
-  },
   notificationCard: {
     backgroundColor: '#F8F9FA',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
@@ -786,7 +966,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#34C759',
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   statusBadgeText: {
     color: 'white',
@@ -797,7 +977,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF3B30',
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   statusBadgeTextDisabled: {
     color: 'white',
@@ -814,7 +994,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     marginTop: 16,
     alignSelf: 'flex-start',
   },
@@ -830,10 +1010,6 @@ const styles = StyleSheet.create({
   settingLabelDisabled: {
     color: '#C7C7CC',
   },
-  timeInputDisabled: {
-    color: '#C7C7CC',
-    backgroundColor: '#F2F2F7',
-  },
   optionButtonDisabled: {
     backgroundColor: '#F2F2F7',
     borderColor: '#E5E5EA',
@@ -844,7 +1020,7 @@ const styles = StyleSheet.create({
   snoozeButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: '#E5E5EA',
     backgroundColor: '#FFFFFF',
@@ -873,15 +1049,30 @@ const styles = StyleSheet.create({
   optionDescriptionDisabled: {
     color: '#C7C7CC',
   },
-  testButtonDisabled: {
-    backgroundColor: '#F2F2F7',
-    borderColor: '#E5E5EA',
-  },
-  testButtonTextDisabled: {
-    color: '#C7C7CC',
-  },
   helpTextDisabled: {
     color: '#C7C7CC',
+  },
+  notificationTime: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+    fontFamily: 'monospace',
+  },
+  notificationType: {
+    backgroundColor: '#F0F8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.md,
+  },
+  notificationTypeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#007AFF',
+  },
+  notificationBody: {
+    fontSize: 14,
+    color: '#8E8E93',
+    lineHeight: 20,
   },
   // モーダルスタイル
   modalOverlay: {
@@ -926,7 +1117,7 @@ const styles = StyleSheet.create({
   closeButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     backgroundColor: '#8E8E93',
     justifyContent: 'center',
     alignItems: 'center',
@@ -967,63 +1158,12 @@ const styles = StyleSheet.create({
   notificationContainer: {
     paddingVertical: 8,
   },
-  notificationCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  notificationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  notificationTime: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-    fontFamily: 'monospace',
-  },
-  notificationType: {
-    backgroundColor: '#F0F8FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  notificationTypeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  notificationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 6,
-    lineHeight: 22,
-  },
-  notificationBody: {
-    fontSize: 14,
-    color: '#8E8E93',
-    lineHeight: 20,
-  },
   saveButtonContainer: {
     marginTop: 20,
   },
   saveButton: {
     backgroundColor: '#007AFF',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1038,6 +1178,57 @@ const styles = StyleSheet.create({
   },
   saveButtonTextDisabled: {
     color: '#8E8E93',
+  },
+  // 新しい設定項目用のスタイル
+  toggleContainer: {
+    gap: 16,
+  },
+  toggleItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#0369A1',
+  },
+  toggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#E5E5EA',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleActive: {
+    backgroundColor: '#0EA5E9',
+  },
+  toggleThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 20 }],
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#0369A1',
+    backgroundColor: '#FFFFFF',
+    textAlignVertical: 'top',
+    minHeight: 60,
   },
 });
 

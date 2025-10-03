@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
-import { IntakeLog, UserProfile } from '../types';
+import { IntakeLog, Settings, UserProfile } from '../types';
 
 // Web版ではSQLiteを使用しない
 const isWeb = Platform.OS === 'web';
@@ -49,6 +49,16 @@ export const initDatabase = () => {
       source TEXT NOT NULL CHECK (source IN ('quick', 'custom')),
       note TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Settings table
+  db?.execSync(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      settings_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -170,4 +180,47 @@ export const getAllIntakeLogs = (): IntakeLog[] => {
     source: row.source,
     note: row.note,
   }));
+};
+
+export const saveSettings = (settings: Settings) => {
+  if (isWeb) {
+    console.log('Web platform detected - skipping saveSettings');
+    return;
+  }
+
+  try {
+    const settingsJson = JSON.stringify(settings);
+    
+    db?.runSync(`
+      INSERT OR REPLACE INTO settings (id, settings_data, updated_at)
+      VALUES ('default', ?, CURRENT_TIMESTAMP)
+    `, [settingsJson]);
+    
+    console.log('Settings saved successfully');
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    throw error;
+  }
+};
+
+export const getSettings = (): Settings | null => {
+  if (isWeb) {
+    console.log('Web platform detected - returning null for getSettings');
+    return null;
+  }
+
+  try {
+    const result = db?.getFirstSync(`
+      SELECT settings_data FROM settings WHERE id = 'default'
+    `) as { settings_data: string } | undefined;
+    
+    if (result) {
+      return JSON.parse(result.settings_data) as Settings;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting settings:', error);
+    return null;
+  }
 };

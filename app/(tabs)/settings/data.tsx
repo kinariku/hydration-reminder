@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { CommonHeader } from '../../../components/common-header';
 import { BUTTON_SIZES } from '../../../constants/buttonSizes';
+import { RADIUS } from '../../../constants/radius';
 import { useHydrationStore } from '../../../stores/hydrationStore';
 
 export default function DataSettingsScreen() {
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E5E5EA',
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
   },
   settingItem: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     paddingHorizontal: 16,
     paddingVertical: 16,
     marginBottom: 16,
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
   actionButton: {
     paddingHorizontal: BUTTON_SIZES.small.paddingHorizontal,
     paddingVertical: BUTTON_SIZES.small.paddingVertical,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: BUTTON_SIZES.small.minWidth,
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
   },
   warningCard: {
     backgroundColor: '#FFF3CD',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     padding: 16,
     borderWidth: 1,
     borderColor: '#FFEAA7',

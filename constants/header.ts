@@ -13,17 +13,8 @@ export const HEADER_CONSTANTS = {
 // ヘッダーのスタイルを統一するための共通スタイル
 export const COMMON_HEADER_STYLES = {
   headerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    borderBottomWidth: 0,
   },
   header: {
     flexDirection: 'row' as const,
@@ -37,7 +28,7 @@ export const COMMON_HEADER_STYLES = {
     width: HEADER_CONSTANTS.BUTTON_SIZE,
     height: HEADER_CONSTANTS.BUTTON_SIZE,
     borderRadius: HEADER_CONSTANTS.BUTTON_RADIUS,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
@@ -47,16 +38,17 @@ export const COMMON_HEADER_STYLES = {
   },
   backButtonIcon: {
     fontSize: 20,
-    color: '#007AFF',
+    color: '#FFFFFF',
     fontWeight: '600' as const,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
     flex: 1,
     textAlign: 'center' as const,
     marginHorizontal: 16,
+    letterSpacing: -0.3,
   },
   headerLeft: {
     width: HEADER_CONSTANTS.BUTTON_SIZE,

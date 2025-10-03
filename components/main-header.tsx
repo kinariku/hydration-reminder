@@ -5,14 +5,17 @@ import { COMMON_HEADER_STYLES } from '../constants/header';
 
 interface MainHeaderProps {
   title: string;
+  leftElement?: React.ReactNode;
   rightElement?: React.ReactNode;
 }
 
-export function MainHeader({ title, rightElement }: MainHeaderProps) {
+export function MainHeader({ title, leftElement, rightElement }: MainHeaderProps) {
   return (
     <SafeAreaView style={COMMON_HEADER_STYLES.headerContainer} edges={['top']}>
       <View style={COMMON_HEADER_STYLES.header}>
-        <View style={COMMON_HEADER_STYLES.headerLeft} />
+        <View style={COMMON_HEADER_STYLES.headerLeft}>
+          {leftElement}
+        </View>
         
         <Text style={COMMON_HEADER_STYLES.headerTitle}>{title}</Text>
         
