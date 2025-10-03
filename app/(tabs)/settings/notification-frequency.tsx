@@ -66,7 +66,7 @@ export default function NotificationFrequencySettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="通知頻度設定"
-      onBackPress={() => router.back()}
+      onBackPress={() => router.push("/(tabs)/settings")}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>通知頻度</Text>

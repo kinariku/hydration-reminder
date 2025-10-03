@@ -53,7 +53,7 @@ export default function SnoozeSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="スヌーズ時間設定"
-      onBackPress={() => router.back()}
+      onBackPress={() => router.push("/(tabs)/settings")}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>スヌーズ時間</Text>

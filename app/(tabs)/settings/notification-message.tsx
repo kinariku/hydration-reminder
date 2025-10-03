@@ -66,7 +66,7 @@ export default function NotificationMessageScreen() {
   return (
     <SettingsDetailTemplate
       title="カスタムメッセージ"
-      onBackPress={() => router.back()}
+      onBackPress={() => router.push("/(tabs)/settings")}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>通知メッセージ</Text>

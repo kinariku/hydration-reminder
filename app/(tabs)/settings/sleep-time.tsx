@@ -69,7 +69,7 @@ export default function SleepTimeSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="就寝時間設定"
-      onBackPress={() => router.back()}
+      onBackPress={() => router.push("/(tabs)/settings")}
     >
       <View style={styles.inputGroup}>
         <Text style={styles.label}>就寝時間</Text>

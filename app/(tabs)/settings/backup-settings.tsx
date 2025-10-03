@@ -52,7 +52,7 @@ export default function BackupSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="データバックアップ"
-      onBackPress={() => router.back()}
+      onBackPress={() => router.push("/(tabs)/settings")}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>データバックアップの有効化</Text>

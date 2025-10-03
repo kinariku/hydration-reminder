@@ -51,7 +51,7 @@ export default function ActivitySettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="活動レベル設定"
-      onBackPress={() => router.back()}
+      onBackPress={() => router.push("/(tabs)/settings")}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>活動レベル</Text>

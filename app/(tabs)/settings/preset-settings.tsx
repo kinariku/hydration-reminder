@@ -82,7 +82,7 @@ export default function PresetSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="プリセット量"
-      onBackPress={() => router.back()}
+      onBackPress={() => router.push("/(tabs)/settings")}
     >
       <View style={commonStyles.inputGroup}>
         <View style={styles.presetGrid}>
