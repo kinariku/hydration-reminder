@@ -3,13 +3,13 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { formatVolume } from '../lib/unitConverter';
 
