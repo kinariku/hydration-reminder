@@ -1,28 +1,54 @@
 import * as Notifications from 'expo-notifications';
+import { getSettings } from '../database';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// 通知ハンドラーを動的に設定
+const setupNotificationHandler = async () => {
+  try {
+    const settings = await getSettings();
+    const notificationSound = settings?.notificationSound ?? true;
+    const notificationVibration = settings?.notificationVibration ?? true;
 
-export {
-  requestNotificationPermission,
-  ensureNotificationsEnabled,
-  checkNotificationStatus,
-  openNotificationSettings,
-} from './permissions';
-export type { ScheduleNextReminderOptions } from './planning';
-export { scheduleNextReminder } from './planning';
-export type { SnoozeOptions, SnoozeResult } from './snooze';
-export { scheduleSnoozeReminders, cancelSnoozeReminders } from './snooze';
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: notificationSound,
+        shouldSetBadge: false,
+      }),
+    });
+  } catch (error) {
+    console.error('Error setting up notification handler:', error);
+    // デフォルト設定でフォールバック
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }
+};
+
+// 初期化時に通知ハンドラーを設定
+setupNotificationHandler();
+
+// 通知ハンドラーを更新する関数をエクスポート
+export const updateNotificationHandler = async () => {
+  await setupNotificationHandler();
+};
+
+export { registerBackgroundFetch, sendTestNotification } from './background';
 export { scheduleButtonTriggeredReminders } from './button';
 export {
-  scheduleReminders,
-  cancelScheduledReminders,
-  getScheduledNotifications,
+    cancelScheduledReminders,
+    getScheduledNotifications, scheduleReminders
 } from './legacy';
-export { registerBackgroundFetch, sendTestNotification } from './background';
+export {
+    checkNotificationStatus, ensureNotificationsEnabled, openNotificationSettings, requestNotificationPermission
+} from './permissions';
+export { scheduleNextReminder } from './planning';
+export type { ScheduleNextReminderOptions } from './planning';
+export { cancelSnoozeReminders, scheduleSnoozeReminders } from './snooze';
+export type { SnoozeOptions, SnoozeResult } from './snooze';
+

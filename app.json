@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "StayHydrated",
+    "name": "水飲みリマインダー",
     "slug": "stayhydrated",
     "version": "1.0.1",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
     "ios": {
       "bundleIdentifier": "app.kinari.stayhydrated",
       "supportsTablet": true,
-      "buildNumber": "19",
+      "buildNumber": "20",
       "infoPlist": {
         "UIBackgroundModes": [
           "fetch"

@@ -1,32 +1,77 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 interface ProgressRingProps {
   progress: number; // 0 to 1
   size?: number;
   strokeWidth?: number;
-  color?: string;
+  color?: string | string[];
   backgroundColor?: string;
   children?: React.ReactNode;
+  showsGradient?: boolean;
 }
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const ProgressRing: React.FC<ProgressRingProps> = ({
   progress,
   size = 200,
   strokeWidth = 12,
-  color = '#007AFF',
+  color = '#FFFFFF',
   backgroundColor = '#E5E5EA',
   children,
+  showsGradient = true,
 }) => {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
+  const normalizedProgress = Math.max(0, Math.min(progress, 1));
+  const radius = useMemo(() => (size - strokeWidth) / 2, [size, strokeWidth]);
+  const circumference = useMemo(() => 2 * Math.PI * radius, [radius]);
+  const animation = useRef(new Animated.Value(normalizedProgress)).current;
+
+  useEffect(() => {
+    Animated.timing(animation, {
+      toValue: normalizedProgress,
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [animation, normalizedProgress]);
+
   const strokeDasharray = circumference;
-  const strokeDashoffset = circumference * (1 - progress);
+  const strokeDashoffset = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [circumference, 0],
+  });
+
+  const gradientIdRef = useRef(
+    `ring-gradient-${Math.random().toString(36).slice(2)}`
+  );
+  const ringStroke = Array.isArray(color) && showsGradient
+    ? `url(#${gradientIdRef.current})`
+    : Array.isArray(color) ? color[0] : color;
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFillObject}>
+        {Array.isArray(color) && showsGradient && (
+          <Defs>
+            <LinearGradient
+              id={gradientIdRef.current}
+              x1="0%"
+              y1="0%"
+              x2="0%"
+              y2="100%"
+            >
+              {color.map((colorValue, index) => (
+                <Stop 
+                  key={index}
+                  offset={`${(index / (color.length - 1)) * 100}%`} 
+                  stopColor={colorValue} 
+                />
+              ))}
+            </LinearGradient>
+          </Defs>
+        )}
         {/* Background circle */}
         <Circle
           cx={size / 2}
@@ -37,15 +82,15 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           fill="none"
         />
         {/* Progress circle */}
-        <Circle
+        <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={color}
+          stroke={ringStroke}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={strokeDasharray}
-          strokeDashoffset={strokeDashoffset}
+          strokeDashoffset={strokeDashoffset as unknown as number}
           strokeLinecap="round"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
