@@ -1,5 +1,4 @@
 import { FontAwesome5 } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -89,7 +88,7 @@ export function CustomTabBar({ activeTab, onTabPress, onAddPress, addButtonRef, 
   
   return (
     <View style={styles.wrapper}>
-      <BlurView intensity={30} style={[styles.container, { paddingBottom: insets.bottom }]} tint="light">
+      <View style={[styles.container, { paddingBottom: insets.bottom }]}> 
         <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'home' && styles.activeTabItem]}
@@ -123,7 +122,7 @@ export function CustomTabBar({ activeTab, onTabPress, onAddPress, addButtonRef, 
             </Text>
           </TouchableOpacity>
         </View>
-      </BlurView>
+      </View>
 
       {onAddPress && (
         <Animated.View
@@ -159,15 +158,15 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 0.5,
     borderTopColor: 'rgba(0, 0, 0, 0.05)',
     // より自然な影を追加
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   tabContainer: {
     flexDirection: 'row',

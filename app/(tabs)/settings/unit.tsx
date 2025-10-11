@@ -56,7 +56,7 @@ export default function UnitSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="単位設定"
-      onBackPress={() => router.push('/(tabs)/settings')}
+      onBackPress={() => router.back()}
     >
       <View style={[styles.optionsContainer, { marginBottom: 24 }]}>
         {unitOptions.map((option, index) => (

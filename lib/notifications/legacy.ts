@@ -1,8 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
-import { NOTIFICATION_CHANNEL_ID } from './constants';
 import { ensureNotificationChannel } from './channels';
+import { NOTIFICATION_CHANNEL_ID } from './constants';
 import { waitFor } from './helpers';
 import { ensureNotificationsEnabled } from './permissions';
 
@@ -48,8 +48,8 @@ export const scheduleReminders = async (
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '💧 水分補給の時間です！',
-          body: `約${amountPerReminder}mlの水分を摂取しましょう`,
+          title: '水分補給の時間です',
+          body: `約${amountPerReminder}mlの水分を摂取しましょう。`,
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },

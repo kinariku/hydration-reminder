@@ -52,7 +52,7 @@ export default function LearningSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="学習機能"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>学習機能の有効化</Text>

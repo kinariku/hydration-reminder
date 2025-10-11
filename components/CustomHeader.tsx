@@ -1,4 +1,3 @@
-import { BlurView } from 'expo-blur';
 import React from 'react';
 import { StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,7 +11,7 @@ interface CustomHeaderProps {
 export function CustomHeader({ title, leftElement, rightElement }: CustomHeaderProps) {
   return (
     <View style={styles.container}>
-      <BlurView intensity={60} style={styles.blurContainer} tint="light">
+      <View style={styles.blurContainer}>
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
           <View style={styles.header}>
@@ -27,7 +26,7 @@ export function CustomHeader({ title, leftElement, rightElement }: CustomHeaderP
             </View>
           </View>
         </SafeAreaView>
-      </BlurView>
+      </View>
     </View>
   );
 }

@@ -50,7 +50,7 @@ export const scheduleNextReminderInternal = async (
     return plan;
   }
 
-  const { title, body } = buildNotificationMessage(plan);
+  const { title, body } = buildNotificationMessage(plan, options.targetMl, options.consumedMl);
 
   await ensureNotificationChannel();
 
@@ -104,16 +104,19 @@ const resolveDayAnchors = (wakeTime: string, sleepTime: string, reference: Date)
   return { wake, sleep };
 };
 
-const buildNotificationMessage = (plan: ReminderPlanResult) => {
+const buildNotificationMessage = (plan: ReminderPlanResult, targetMl?: number, consumedMl?: number) => {
   const intervalText = formatInterval(plan.nextIntervalMin);
   const nextTimeText = plan.nextAt ? formatTime(plan.nextAt) : '';
 
   const suggestion = `いま ${plan.suggestMl}ml いきますか？`;
+  const progressText = typeof targetMl === 'number' && typeof consumedMl === 'number'
+    ? ` 現在: ${consumedMl}ml / 目標: ${targetMl}ml`
+    : '';
   const nextInfo = `次は${intervalText}${nextTimeText ? `（${nextTimeText}頃）` : ''}を予定しています。`;
 
   return {
-    title: '💧 水分補給リマインダー',
-    body: `${suggestion} ${nextInfo}`.trim(),
+    title: '水分補給リマインダー',
+    body: `${suggestion}${progressText} ${nextInfo}`.trim(),
   };
 };
 

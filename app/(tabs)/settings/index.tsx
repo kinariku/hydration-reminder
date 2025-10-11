@@ -3,13 +3,13 @@ import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CustomTabBar } from '../../../components/CustomTabBar';
 import { SettingsBackground } from '../../../components/settings/SettingsBackground';
 import { SettingsHeader } from '../../../components/settings/SettingsHeader';
 import { SettingsSection } from '../../../components/settings/SettingsSection';
 import { useNotificationStatus } from '../../../hooks/useNotificationStatus';
 import { createSettingsData } from '../../../lib/settingsData';
 import { useHydrationStore } from '../../../stores/hydrationStore';
+ 
 
 export default function SettingsScreen() {
   const { 
@@ -22,11 +22,6 @@ export default function SettingsScreen() {
   const handleItemPress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(route);
-  };
-
-  const handleAddPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/modal');
   };
 
   const settingsData = createSettingsData(userProfile, settings, notificationStatus);
@@ -54,15 +49,7 @@ export default function SettingsScreen() {
         ))}
       </ScrollView>
       
-      <CustomTabBar 
-        activeTab="settings" 
-        onTabPress={(tab) => {
-          if (tab === 'home') {
-            router.push('/(tabs)/');
-          }
-        }}
-        onAddPress={handleAddPress}
-      />
+      {/* Tab bar and add dialog are provided by (tabs)/_layout.tsx */}
     </SettingsBackground>
   );
 }

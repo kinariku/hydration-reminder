@@ -20,8 +20,8 @@ export const sendTestNotification = async () => {
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '💧 テスト通知',
-        body: '通知機能が正常に動作しています！',
+        title: 'テスト通知',
+        body: '通知機能が正常に動作しています。',
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },

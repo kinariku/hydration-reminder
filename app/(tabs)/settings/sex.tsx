@@ -50,7 +50,7 @@ export default function SexSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="性別設定"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>性別</Text>

@@ -1,5 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
+import { ensureNotificationChannel } from './channels';
+import { NOTIFICATION_CHANNEL_ID } from './constants';
 
 import { waitFor } from './helpers';
 import { ensureNotificationsEnabled } from './permissions';
@@ -41,6 +43,8 @@ export interface SnoozeOptions {
   intervalMinutes?: number;
   maxSnoozes?: number;
   frequency?: 'low' | 'medium' | 'high';
+  targetMl?: number;
+  consumedMl?: number;
 }
 
 export interface SnoozeResult {
@@ -80,13 +84,20 @@ export const scheduleSnoozeReminders = async (
     const sequenceId = `snooze:${baseTime.getTime()}`;
     const baseTimeIso = baseTime.toISOString();
 
-    // 最初のスヌーズ通知はメイン通知の5分後に登録
-    const firstSnoozeTime = new Date(baseTime.getTime() + 5 * 60 * 1000);
+    // Android の通知チャネルを保証
+    await ensureNotificationChannel();
+
+    // 初回は baseTime で通知
+    const firstSnoozeTime = new Date(baseTime.getTime());
     
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '💧 水分補給リマインダー',
-        body: `水分補給の時間です！${suggestMl}ml どうですか？`,
+        title: '水分補給リマインダー',
+        body: `水分補給の時間です！${suggestMl}ml どうですか？${
+          typeof options.consumedMl === 'number' && typeof options.targetMl === 'number'
+            ? ` 現在: ${options.consumedMl}ml / 目標: ${options.targetMl}ml`
+            : ''
+        }`,
         sound: true,
         data: {
           type: 'initial',
@@ -94,25 +105,53 @@ export const scheduleSnoozeReminders = async (
           sequenceId,
           baseTime: baseTimeIso,
           suggestMl,
+          targetMl: options.targetMl,
+          consumedMl: options.consumedMl,
           snoozeCount: 0,
         },
       },
       trigger: {
         type: SchedulableTriggerInputTypes.DATE,
         date: firstSnoozeTime,
+        channelId: NOTIFICATION_CHANNEL_ID,
       },
     });
     scheduledCount++;
 
+    // 漸増スヌーズ: ユーザー/頻度ベースの間隔から少しずつ広げる
+    const computeIncrementStep = (base: number): number => {
+      switch (options.frequency || 'medium') {
+        case 'high':
+          return Math.max(1, Math.floor(base * 0.25)); // 25%相当
+        case 'low':
+          return Math.max(3, Math.floor(base * 0.33)); // 33%相当
+        case 'medium':
+        default:
+          return Math.max(2, Math.floor(base * 0.3)); // 30%相当
+      }
+    };
+
+    const incrementStep = computeIncrementStep(actualInterval);
+    let cumulativeMinutes = 0;
+
     for (let i = 0; i < totalNotifications - 1; i++) {
-      // 最初のスヌーズ通知が5分後なので、2番目以降は5分 + 間隔 * (i+1) 分後
-      const snoozeTime = new Date(baseTime.getTime() + (5 + (i + 1) * actualInterval) * 60000);
+      // 各スヌーズの実間隔: base + i*step（上限でクランプ）
+      const thisInterval = Math.min(
+        SNOOZE_CONFIG.maxIntervalMinutes,
+        actualInterval + i * incrementStep
+      );
+      cumulativeMinutes += thisInterval;
+      const snoozeTime = new Date(baseTime.getTime() + cumulativeMinutes * 60000);
       const message = SNOOZE_MESSAGES[i] || SNOOZE_MESSAGES[SNOOZE_MESSAGES.length - 1];
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '💧 水分補給リマインダー',
-          body: message,
+          title: '水分補給リマインダー',
+          body: `${message} ${
+            typeof options.consumedMl === 'number' && typeof options.targetMl === 'number'
+              ? `現在: ${options.consumedMl}ml / 目標: ${options.targetMl}ml`
+              : ''
+          }`.trim(),
           sound: true,
           data: {
             type: 'snooze',
@@ -121,12 +160,15 @@ export const scheduleSnoozeReminders = async (
             baseTime: baseTimeIso,
             scheduledFor: snoozeTime.toISOString(),
             suggestMl,
+            targetMl: options.targetMl,
+            consumedMl: options.consumedMl,
             snoozeCount: i + 1,
           },
         },
         trigger: {
           type: SchedulableTriggerInputTypes.DATE,
           date: snoozeTime,
+          channelId: NOTIFICATION_CHANNEL_ID,
         },
       });
       scheduledCount++;

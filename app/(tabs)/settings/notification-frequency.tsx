@@ -19,19 +19,19 @@ export default function NotificationFrequencySettingsScreen() {
     { 
       label: '低頻度', 
       value: 'low', 
-      description: '1時間おき',
+      description: '90分おき',
       icon: '🐌'
     },
     { 
       label: '中頻度', 
       value: 'medium', 
-      description: '30分おき',
+      description: '1時間おき',
       icon: '🚶'
     },
     { 
       label: '高頻度', 
       value: 'high', 
-      description: '15分おき',
+      description: '30分おき',
       icon: '🏃'
     },
   ];
@@ -66,7 +66,7 @@ export default function NotificationFrequencySettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="通知頻度設定"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>通知頻度</Text>

@@ -55,7 +55,7 @@ export default function ThemeSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="テーマ設定"
-      onBackPress={() => router.push('/(tabs)/settings')}
+      onBackPress={() => router.back()}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>アプリのテーマ</Text>

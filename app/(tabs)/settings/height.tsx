@@ -49,7 +49,7 @@ export default function HeightSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="身長設定"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>身長 (cm) - 任意</Text>

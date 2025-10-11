@@ -1,8 +1,8 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Dimensions,
     ScrollView,
@@ -13,13 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Rect, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
-import { CustomTabBar } from '../../components/CustomTabBar';
-import { SettingsSection } from '../../components/settings/SettingsSection';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { WaterBubbles } from '../../components/WaterBubbles';
-import { WaterIntakeDialog } from '../../components/WaterIntakeDialog';
 import { RADIUS } from '../../constants/radius';
-import { useNotificationStatus } from '../../hooks/useNotificationStatus';
 import { getIntakeLogs } from '../../lib/database';
 import { getLocalDateString } from '../../lib/date';
 import {
@@ -27,7 +23,6 @@ import {
     requestNotificationPermission,
     scheduleButtonTriggeredReminders,
 } from '../../lib/notifications';
-import { createSettingsData } from '../../lib/settingsData';
 import { formatVolume } from '../../lib/unitConverter';
 import { useHydrationStore } from '../../stores/hydrationStore';
 import { IntakeLog } from '../../types';
@@ -65,7 +60,7 @@ const renderDayContent = (summary: DailySummary, settings: any) => {
           size={260}
           strokeWidth={20}
           color="#0EA5E9"
-          backgroundColor="rgba(255, 255, 255, 0.4)"
+          backgroundColor="#FFFFFF"
           showsGradient={false}
         >
           <View style={styles.progressInnerContent}>
@@ -261,10 +256,7 @@ export default function HomeScreen() {
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [showWaterDialog, setShowWaterDialog] = useState(false);
-  const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 });
-  const [activeTab, setActiveTab] = useState<'home' | 'settings'>('home');
-  const addButtonRef = useRef<any>(null);
+  
 
   const selectedSummary = useMemo(
     () => dailySummaries.find((item) => item.date === selectedDate),
@@ -413,46 +405,9 @@ export default function HomeScreen() {
   };
 
 
-  const handleAddPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
-    // ボタンの位置を取得
-    if (addButtonRef.current) {
-      addButtonRef.current.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
-        setButtonPosition({
-          x: pageX + width / 2,
-          y: pageY + height / 2,
-        });
-        setShowWaterDialog(true);
-      });
-    } else {
-      // フォールバック: 画面中央
-      setButtonPosition({
-        x: screenWidth / 2,
-        y: screenHeight / 2,
-      });
-      setShowWaterDialog(true);
-    }
-  };
+  
 
-  const handleCloseDialog = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShowWaterDialog(false);
-  };
-
-  // 設定画面のコンポーネント
-  const { notificationStatus, handleNotificationSetup } = useNotificationStatus();
-
-  const handleItemPress = (route: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(route as any);
-  };
-
-  const settingsData = createSettingsData(
-    userProfile,
-    settings,
-    notificationStatus
-  );
+  
 
   const handleSelectAmount = async (amount: number) => {
     try {
@@ -510,7 +465,7 @@ export default function HomeScreen() {
                         cx={24}
                         cy={24}
                         r={20}
-                        stroke="rgba(255, 255, 255, 0.3)"
+                        stroke="#FFFFFF"
                         strokeWidth={3}
                         fill="none"
                       />
@@ -611,53 +566,15 @@ export default function HomeScreen() {
         colors={['rgba(14, 165, 233, 0.1)', 'rgba(14, 165, 233, 0.05)', 'transparent']}
         locations={[0, 0.5, 1]}
         style={styles.gradientOverlay}
+        pointerEvents="none"
       />
 
-      {activeTab === 'home' && renderDateTabs()}
+      {renderDateTabs()}
 
       <View style={styles.pageContainer}>
-        {activeTab === 'home' && selectedSummary && renderDayContent(selectedSummary, settings)}
-        {activeTab === 'settings' && (
-          <ScrollView 
-            style={styles.settingsScrollView} 
-            contentContainerStyle={styles.settingsContent}
-            showsVerticalScrollIndicator={true}
-            bounces={true}
-          >
-            {settingsData.map((section) => (
-              <SettingsSection
-                key={section.id}
-                title={section.title}
-                items={section.items}
-                onItemPress={handleItemPress}
-                onNotificationSetup={section.id === 'notification' ? handleNotificationSetup : undefined}
-              />
-            ))}
-          </ScrollView>
-        )}
+        {selectedSummary && renderDayContent(selectedSummary, settings)}
       </View>
 
-      <CustomTabBar 
-        activeTab={activeTab} 
-        onTabPress={(tabKey) => {
-          if (tabKey === 'settings') {
-            setActiveTab('settings');
-          } else if (tabKey === 'home') {
-            setActiveTab('home');
-          }
-        }}
-        onAddPress={handleAddPress}
-        addButtonRef={addButtonRef}
-        isDialogOpen={showWaterDialog}
-      />
-
-      <WaterIntakeDialog
-        visible={showWaterDialog}
-        onClose={handleCloseDialog}
-        onSelectAmount={handleSelectAmount}
-        settings={settings}
-        buttonPosition={buttonPosition}
-      />
     </View>
   );
 }

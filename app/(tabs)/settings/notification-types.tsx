@@ -74,7 +74,7 @@ export default function NotificationTypesScreen() {
   return (
     <SettingsDetailTemplate
       title="通知の種類"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>有効にする通知の種類</Text>

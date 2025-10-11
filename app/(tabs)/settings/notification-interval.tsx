@@ -67,7 +67,7 @@ export default function NotificationIntervalScreen() {
   return (
     <SettingsDetailTemplate
       title="通知間隔"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>リマインダー通知の間隔</Text>

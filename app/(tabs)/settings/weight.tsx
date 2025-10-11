@@ -48,7 +48,7 @@ export default function WeightSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="体重設定"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={commonStyles.inputGroup}>
         <Text style={commonStyles.label}>体重 (kg) *</Text>

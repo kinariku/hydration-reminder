@@ -69,7 +69,7 @@ export default function WakeTimeSettingsScreen() {
   return (
     <SettingsDetailTemplate
       title="起床時間設定"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={styles.inputGroup}>
         <Text style={styles.label}>起床時間</Text>

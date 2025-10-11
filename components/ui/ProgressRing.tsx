@@ -19,7 +19,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   size = 200,
   strokeWidth = 12,
   color = '#FFFFFF',
-  backgroundColor = '#E5E5EA',
+  backgroundColor = '#FFFFFF',
   children,
   showsGradient = true,
 }) => {

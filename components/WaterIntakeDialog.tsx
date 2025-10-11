@@ -1,15 +1,14 @@
 import { FontAwesome5 } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { formatVolume } from '../lib/unitConverter';
 
@@ -145,7 +144,7 @@ export function WaterIntakeDialog({
       onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
-        {/* ブラー背景 - ダイアログの後ろのみ */}
+        {/* 背景オーバーレイ - ブラーなしの半透明 */}
         <Animated.View
           style={[
             styles.blurContainer,
@@ -154,11 +153,6 @@ export function WaterIntakeDialog({
             },
           ]}
         >
-          <BlurView
-            intensity={20}
-            style={StyleSheet.absoluteFillObject}
-            tint="light"
-          />
         </Animated.View>
         
         {/* タッチ可能なオーバーレイ */}
@@ -260,6 +254,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   overlayTouchable: {
     position: 'absolute',

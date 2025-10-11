@@ -69,7 +69,7 @@ export default function NotificationSoundScreen() {
   return (
     <SettingsDetailTemplate
       title="通知音・振動"
-      onBackPress={() => router.push("/(tabs)/settings")}
+      onBackPress={() => router.back()}
     >
       <View style={[commonStyles.infoCard, { marginBottom: 24, paddingVertical: 0 }]}>
         <View style={styles.toggleItem}>
